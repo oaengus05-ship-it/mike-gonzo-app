@@ -215,7 +215,7 @@ td select{background:#1f2937;border:1px solid #374151;border-radius:5px;padding:
   <div id="dash-body" style="display:none">
     <div class="cards" id="dash-cards"></div>
     <div class="panel">
-      <div class="ph"><h2>Direct to Agent Pipeline</h2><span class="badge" id="d2a-ct">--</span><button onclick="G.leads=null;loadDash();showBanner('Refreshing from Monday…','ok')" style="margin-left:10px;padding:3px 10px;font-size:11px;font-weight:700;border-radius:6px;border:1px solid #374151;background:#1f2937;color:#9ca3af;cursor:pointer">↺ Refresh</button></div>
+      <div class="ph"><h2>Direct to Agent Pipeline</h2><span class="badge" id="d2a-ct">--</span><button onclick="G.leads=null;loadDash().then(function(){setTimeout(syncUpdatesFromMonday,500)});showBanner('Refreshing from Monday…','ok')" style="margin-left:10px;padding:3px 10px;font-size:11px;font-weight:700;border-radius:6px;border:1px solid #374151;background:#1f2937;color:#9ca3af;cursor:pointer">↺ Refresh</button></div>
       <div style="margin-bottom:10px">
         <input id="dash-search-input" type="text" placeholder="🔍  Search name, address, or phone…" oninput="dashSetSearch(this.value)" style="width:100%;box-sizing:border-box;background:#1f2937;border:1px solid #374151;border-radius:8px;color:#e5e7eb;font-size:13px;padding:8px 12px;outline:none">
       </div>
@@ -630,12 +630,20 @@ function setLocalStatus(itemId, status, caller) {
   localStorage.setItem('gz_st_' + itemId, JSON.stringify(ex));
 }
 function postSyncUpdate(itemId, body) {
-  // Use variables so emoji/special chars never break the GraphQL string
-  return mq('mutation($id:ID!,$b:String!){create_update(item_id:$id,body:$b){id}}', {id: itemId, b: body})
+  // Inline item_id as integer literal — Monday's create_update expects Int not ID variable
+  var intId = parseInt(itemId, 10);
+  if(isNaN(intId)) return Promise.resolve();
+  return mq('mutation($b:String!){create_update(item_id:' + intId + ',body:$b){id}}', {b: body})
     .then(function(r) {
-      if(r && r.errors && r.errors.length) console.warn('Sync update failed:', r.errors[0].message);
+      if(r && r.errors && r.errors.length) {
+        var msg = (r.errors[0] && r.errors[0].message) || 'Unknown error';
+        console.warn('Sync post failed:', msg);
+        showBanner('⚠ Sync error: ' + msg, 'warn');
+      } else {
+        console.log('[Gonzo sync] Posted', body, 'for item', intId);
+      }
     })
-    .catch(function(err) { console.warn('Sync update error:', err); });
+    .catch(function(err) { console.warn('Sync network error:', err); });
 }
 function changeLeadStatus(itemId, newStatus) {
   setLocalStatus(itemId, newStatus, undefined);
@@ -671,42 +679,56 @@ function changeLeadCaller(itemId, newCaller, selectEl) {
   showBanner('✓ Caller → ' + (newCaller || 'blank'), 'ok');
 }
 
-// Background sync: fetch Monday updates to pull in partner's status/caller changes
+/// Background sync: fetch Monday updates to pull in partner's status/caller changes
 async function syncUpdatesFromMonday() {
   if(!G.leads || !G.leads.length) return;
   try {
-    var ids = G.leads.map(function(l){return l.id;}).slice(0, 100); // max 100 at a time
-    var d = await mq('query{items(ids:[' + ids.join(',') + ']){id updates(limit:5){body created_at}}}');
-    if(!d || !d.data || !d.data.items) return;
+    var allIds = G.leads.map(function(l){ return parseInt(l.id, 10); }).filter(function(x){ return !isNaN(x); });
+    var BATCH = 50; // Monday handles 50 at a time safely
     var changed = false;
-    d.data.items.forEach(function(item) {
-      var lead = G.leads.find(function(l){return l.id === item.id;});
-      if(!lead) return;
-      var local = getLocalStatus(item.id) || {};
-      var mondayStatus = null, mondayStatusTs = 0;
-      var mondayCaller = null, mondayCallerTs = 0;
-      (item.updates || []).forEach(function(u) {
-        var ts = u.created_at ? new Date(u.created_at).getTime() : 0;
-        var body = (u.body || '').replace(/<[^>]+>/g,'').trim();
-        var sm = body.match(/^GZ_STATUS:(.+)$/m) || body.match(/^📊 STATUS: (.+)$/m);
-        if(sm && ts > mondayStatusTs) { mondayStatus = sm[1].trim(); mondayStatusTs = ts; }
-        var cm = body.match(/^GZ_CALLER:(.+)$/m) || body.match(/^📊 CALLER: (.+)$/m);
-        if(cm && ts > mondayCallerTs) { mondayCaller = cm[1].trim(); mondayCallerTs = ts; }
+
+    for(var i = 0; i < allIds.length; i += BATCH) {
+      var batchIds = allIds.slice(i, i + BATCH);
+      // Inline IDs as integer literals, limit:20 so call logs can't bury sync updates
+      var d = await mq('query{items(ids:[' + batchIds.join(',') + ']){id updates(limit:20){body created_at}}}');
+      if(!d || !d.data || !d.data.items) continue;
+
+      d.data.items.forEach(function(item) {
+        var lead = G.leads.find(function(l){ return l.id === String(item.id); });
+        if(!lead) return;
+        var local = getLocalStatus(item.id) || {};
+        var mondayStatus = null, mondayStatusTs = 0;
+        var mondayCaller = null, mondayCallerTs = 0;
+
+        (item.updates || []).forEach(function(u) {
+          var ts = u.created_at ? new Date(u.created_at).getTime() : 0;
+          if(isNaN(ts)) ts = 0;
+          var body = (u.body || '').replace(/<[^>]+>/g, '').trim();
+          var sm = body.match(/^GZ_STATUS:(.+)$/m) || body.match(/^📊 STATUS: (.+)$/m);
+          if(sm && ts > mondayStatusTs) { mondayStatus = sm[1].trim(); mondayStatusTs = ts; }
+          var cm = body.match(/^GZ_CALLER:(.+)$/m) || body.match(/^📊 CALLER: (.+)$/m);
+          if(cm && ts > mondayCallerTs) { mondayCaller = cm[1].trim(); mondayCallerTs = ts; }
+        });
+
+        // Apply Monday's value only if it's newer than our last local write
+        if(mondayStatus !== null && mondayStatusTs > (local.ts || 0) && mondayStatus !== lead.status) {
+          console.log('[Gonzo sync] Applying status', mondayStatus, 'to', lead.name);
+          lead.status = mondayStatus;
+          setLocalStatus(item.id, mondayStatus, undefined);
+          changed = true;
+        }
+        if(mondayCaller !== null && mondayCallerTs > (local.ts || 0) && mondayCaller !== lead.caller) {
+          console.log('[Gonzo sync] Applying caller', mondayCaller, 'to', lead.name);
+          lead.caller = mondayCaller;
+          setLocalStatus(item.id, undefined, mondayCaller);
+          changed = true;
+        }
       });
-      // Only apply Monday's value if it's newer than local
-      if(mondayStatus !== null && mondayStatusTs > (local.ts || 0) && mondayStatus !== lead.status) {
-        lead.status = mondayStatus;
-        setLocalStatus(item.id, mondayStatus, undefined);
-        changed = true;
-      }
-      if(mondayCaller !== null && mondayCallerTs > (local.ts || 0) && mondayCaller !== lead.caller) {
-        lead.caller = mondayCaller;
-        setLocalStatus(item.id, undefined, mondayCaller);
-        changed = true;
-      }
-    });
-    if(changed) renderDashTable();
-  } catch(e) { /* silent — sync is best-effort */ }
+    }
+
+    if(changed) { renderDashTable(); showBanner('🔄 Synced partner changes', 'ok'); }
+    console.log('[Gonzo sync] Sync complete — changed:', changed);
+  } catch(e) { console.warn('[Gonzo sync] Error:', e && e.message); }
 }
 
 // FETCH AND CACHE LEADS
@@ -961,8 +983,14 @@ async function loadDash() {
     renderDashTable();
     document.getElementById('dash-spin').style.display = 'none';
     document.getElementById('dash-body').style.display = 'block';
-    // Background sync: pull partner's status changes from Monday updates (non-blocking)
+    // Background sync: pull partner's changes from Monday updates (non-blocking)
     setTimeout(syncUpdatesFromMonday, 1500);
+    // Auto-sync every 30s so both devices stay in sync without manual refresh
+    if(!G._syncInterval) {
+      G._syncInterval = setInterval(function() {
+        if(G.leads && G.leads.length) syncUpdatesFromMonday();
+      }, 30000);
+    }
   } catch(err) {
     document.getElementById('dash-spin').innerHTML = '<div class="al al-warn">Connection failed: ' + err.message + '. Add your Monday token in Settings.</div>';
   }
@@ -1610,7 +1638,7 @@ async function endCall(itemId) {
   var callerName = getAgentName();
   var body = 'Called by ' + callerName + ' -- ' + durStr + (notes.trim() ? '\n' + notes.trim() : '');
   try {
-    await mq('mutation($id:ID!,$body:String!){create_update(item_id:$id,body:$body){id}}', { id: itemId, body: body });
+    await mq('mutation($body:String!){create_update(item_id:' + parseInt(itemId,10) + ',body:$body){id}}', { body: body });
   } catch(err) { console.error('Monday update failed:', err); }
   var log = JSON.parse(localStorage.getItem('gonzo_calllog') || '[]');
   var lead = G.activeLead;
