@@ -629,15 +629,21 @@ function setLocalStatus(itemId, status, caller) {
   ex.ts = Date.now();
   localStorage.setItem('gz_st_' + itemId, JSON.stringify(ex));
 }
+function postSyncUpdate(itemId, body) {
+  // Use variables so emoji/special chars never break the GraphQL string
+  return mq('mutation($id:ID!,$b:String!){create_update(item_id:$id,body:$b){id}}', {id: itemId, b: body})
+    .then(function(r) {
+      if(r && r.errors && r.errors.length) console.warn('Sync update failed:', r.errors[0].message);
+    })
+    .catch(function(err) { console.warn('Sync update error:', err); });
+}
 function changeLeadStatus(itemId, newStatus) {
   setLocalStatus(itemId, newStatus, undefined);
   if(G.leads) { var _l = G.leads.find(function(x){return x.id===itemId;}); if(_l) _l.status = newStatus; }
-  // Post Monday update so Michael's app picks it up on next load
-  mq('mutation{create_update(item_id:' + itemId + ',body:"📊 STATUS: ' + newStatus.replace(/"/g,"'") + '"){id}}').catch(function(){});
+  postSyncUpdate(itemId, 'GZ_STATUS:' + newStatus);
 
   // Handle exits from dashboard
   if(newStatus === 'Not interested') {
-    // Soft-archive to graveyard (no Monday delete)
     var lead = G.leads ? G.leads.find(function(x){return x.id===itemId;}) : null;
     var gy = gyLoad();
     gy.push({ id: itemId, name: lead ? (lead.name||'') : itemId,
@@ -660,7 +666,7 @@ function changeLeadStatus(itemId, newStatus) {
 function changeLeadCaller(itemId, newCaller, selectEl) {
   setLocalStatus(itemId, undefined, newCaller);
   if(G.leads) { var _l = G.leads.find(function(x){return x.id===itemId;}); if(_l) _l.caller = newCaller; }
-  mq('mutation{create_update(item_id:' + itemId + ',body:"📊 CALLER: ' + (newCaller||'').replace(/"/g,"'") + '"){id}}').catch(function(){});
+  postSyncUpdate(itemId, 'GZ_CALLER:' + (newCaller||''));
   renderDashTable();
   showBanner('✓ Caller → ' + (newCaller || 'blank'), 'ok');
 }
@@ -682,9 +688,9 @@ async function syncUpdatesFromMonday() {
       (item.updates || []).forEach(function(u) {
         var ts = u.created_at ? new Date(u.created_at).getTime() : 0;
         var body = (u.body || '').replace(/<[^>]+>/g,'').trim();
-        var sm = body.match(/^📊 STATUS: (.+)$/m);
+        var sm = body.match(/^GZ_STATUS:(.+)$/m) || body.match(/^📊 STATUS: (.+)$/m);
         if(sm && ts > mondayStatusTs) { mondayStatus = sm[1].trim(); mondayStatusTs = ts; }
-        var cm = body.match(/^📊 CALLER: (.+)$/m);
+        var cm = body.match(/^GZ_CALLER:(.+)$/m) || body.match(/^📊 CALLER: (.+)$/m);
         if(cm && ts > mondayCallerTs) { mondayCaller = cm[1].trim(); mondayCallerTs = ts; }
       });
       // Only apply Monday's value if it's newer than local
