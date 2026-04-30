@@ -1,0 +1,2429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Gonzo Wolf -- V2</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0c0e14;color:#e0e0e0;min-height:100vh}
+.nav{background:#111827;border-bottom:2px solid #8b5cf6;padding:0 16px;display:flex;align-items:center;gap:0;position:sticky;top:0;z-index:200;overflow-x:auto}
+.brand{font-size:15px;font-weight:700;color:#fff;padding:14px 0;margin-right:16px;letter-spacing:-.3px;white-space:nowrap}
+.brand span{color:#8b5cf6}
+.tab{padding:14px 11px;font-size:12px;font-weight:800;color:#6b7280;cursor:pointer;border-bottom:2px solid transparent;transition:.15s;white-space:nowrap;margin-bottom:-2px;letter-spacing:.1px}
+.tab:hover{color:#d1d5db}.tab.on{color:#fff;border-bottom-color:#8b5cf6}
+.nav-sep{width:1px;background:#1f2937;height:22px;align-self:center;flex-shrink:0;margin:0 4px}
+.page{display:none;padding:22px;max-width:1160px;margin:0 auto}.page.on{display:block}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.card{background:#111827;border:1px solid #1f2937;border-radius:10px;padding:16px 18px}
+.card .lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#4b5563;margin-bottom:5px}
+.card .val{font-size:28px;font-weight:700;color:#fff}.card .sub{font-size:11px;color:#4b5563;margin-top:2px}
+.card.g .val{color:#10b981}.card.b .val{color:#60a5fa}.card.o .val{color:#f59e0b}.card.r .val{color:#f87171}.card.v .val{color:#a78bfa}
+.panel{background:#111827;border:1px solid #1f2937;border-radius:10px;margin-bottom:16px;overflow:hidden}
+.ph{padding:12px 20px;border-bottom:1px solid #1f2937;display:flex;align-items:center;justify-content:space-between}
+.ph h2{font-size:13px;font-weight:700;color:#fff}
+.badge{font-size:11px;background:#1f2937;border-radius:20px;padding:3px 10px;color:#6b7280;font-weight:600}
+.pb{padding:16px 20px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#374151;padding-bottom:7px;border-bottom:1px solid #1f2937}
+td{padding:7px 0;border-bottom:1px solid #161c28;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr.cl:hover td{background:#13171f;cursor:pointer}
+.n{font-weight:600;color:#e5e7eb}.a{font-size:11px;color:#4b5563;margin-top:2px}
+.pill{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px}
+.p-acc{background:#064e3b;color:#10b981}.p-sent{background:#1e3a5f;color:#60a5fa}
+.p-pend{background:#451a03;color:#f59e0b}.p-dec{background:#450a0a;color:#f87171}
+.p-vm{background:#2e1065;color:#a78bfa}.p-cb{background:#1e3a5f;color:#38bdf8}
+.p-ns{background:#1c1c2e;color:#4b5563}.p-blank{background:#1c1c2e;color:#4b5563}
+.ca{background:#2e1065;color:#a78bfa;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;display:inline-block}
+.cm{background:#451a03;color:#f59e0b;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;display:inline-block}
+.ct{background:#064e3b;color:#10b981;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;display:inline-block}
+.btn{padding:8px 18px;border-radius:8px;font-size:13px;font-weight:700;border:none;cursor:pointer;transition:.15s;display:inline-block}
+.btn-p{background:#8b5cf6;color:#fff}.btn-p:hover{background:#7c3aed}
+.btn-p:disabled{background:#2d2d44;color:#4b5563;cursor:not-allowed}
+.btn-g{background:#1f2937;color:#9ca3af}.btn-g:hover{background:#273344}
+.btn-ok{background:#064e3b;color:#10b981}.btn-ok:hover{background:#065f46}
+.btn-warn{background:#78350f;color:#fbbf24}.btn-warn:hover{background:#92400e}
+.btn-db{background:#1e3a5f;color:#60a5fa}.btn-db:hover{background:#1e40af}
+.btn-red{background:#450a0a;color:#f87171}.btn-sm{padding:5px 12px;font-size:12px}
+.al{padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:12px}
+.al-info{background:#1e3a5f;color:#93c5fd;border:1px solid #1e40af}
+.al-ok{background:#064e3b;color:#10b981;border:1px solid #065f46}
+.al-warn{background:#451a03;color:#fbbf24;border:1px solid #78350f}
+.fg{margin-bottom:14px}
+.fg label{display:block;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px}
+.fg input,.fg select,.fg textarea{width:100%;background:#1f2937;border:1px solid #374151;border-radius:8px;padding:8px 11px;color:#fff;font-size:13px;outline:none;font-family:inherit}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:#8b5cf6}
+.fg .hint{font-size:11px;color:#4b5563;margin-top:4px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.spin-wrap{text-align:center;padding:40px;color:#4b5563;font-size:13px}
+.sp{display:inline-block;width:18px;height:18px;border:2px solid #1f2937;border-top-color:#8b5cf6;border-radius:50%;animation:sp .8s linear infinite;margin-right:7px;vertical-align:middle}
+@keyframes sp{to{transform:rotate(360deg)}}
+.dz{border:2px dashed #1f2937;border-radius:12px;padding:28px 20px;text-align:center;cursor:pointer;transition:.2s}
+.dz:hover,.dz.ov{border-color:#8b5cf6;background:#12111f}
+.dz .ico{font-size:34px;margin-bottom:8px}.dz h3{font-size:14px;font-weight:700;color:#9ca3af;margin-bottom:4px}.dz p{font-size:12px;color:#4b5563}
+td input[type=text]{background:#1f2937;border:1px solid #374151;border-radius:5px;padding:4px 7px;color:#fff;font-size:12px;width:100%}
+td select{background:#1f2937;border:1px solid #374151;border-radius:5px;padding:4px 6px;color:#fff;font-size:12px}
+.dup-badge{background:#7c2d12;color:#fb923c;font-size:10px;font-weight:700;padding:2px 6px;border-radius:20px;margin-left:4px}
+#map-container{height:calc(100vh - 120px);border-radius:10px;overflow:hidden;border:1px solid #1f2937}
+#tinder-stage{position:relative;width:360px;height:500px;margin:0 auto}
+.tcard{position:absolute;inset:0;background:#111827;border:1px solid #1f2937;border-radius:18px;overflow:hidden;transition:transform .15s,opacity .15s;cursor:grab;user-select:none}
+.tcard.dragging{transition:none;cursor:grabbing}
+.tcard-img{width:100%;height:180px;background:#1a1f2e;display:flex;align-items:center;justify-content:center;color:#374151;font-size:12px}
+.tcard-body{padding:18px}
+.tcard-name{font-size:18px;font-weight:700;color:#fff;margin-bottom:5px}
+.tcard-addr{font-size:12px;color:#9ca3af;margin-bottom:10px}
+.tcard-hint{position:absolute;top:16px;right:16px;font-size:30px;font-weight:900;opacity:0;transition:opacity .1s}
+.tcard-hint.sr{opacity:1;color:#10b981}.tcard-hint.sl{opacity:1;color:#f87171}.tcard-hint.su{opacity:1;color:#f59e0b}
+.tinder-btns{display:flex;justify-content:center;gap:22px;margin-top:18px}
+.tbtn{width:54px;height:54px;border-radius:50%;border:none;font-size:22px;cursor:pointer;transition:.15s}
+.tbtn-l{background:#450a0a;color:#f87171}.tbtn-l:hover{background:#7f1d1d}
+.tbtn-r{background:#064e3b;color:#10b981}.tbtn-r:hover{background:#065f46}
+.tbtn-u{background:#451a03;color:#f59e0b}.tbtn-u:hover{background:#78350f}
+.hot-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.hot-card{background:#111827;border:1px solid #374151;border-radius:10px;padding:12px 14px;cursor:pointer;transition:.15s}
+.hot-card:hover{border-color:#8b5cf6;background:#13171f}
+.hc-name{font-weight:700;color:#fff;font-size:13px;margin-bottom:3px}
+.hc-addr{font-size:11px;color:#6b7280;margin-bottom:6px}
+.war-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
+.war-card{background:#111827;border:2px solid #1f2937;border-radius:14px;padding:22px;text-align:center}
+.war-card.leader{border-color:#f59e0b}
+.war-name{font-size:13px;font-weight:700;color:#9ca3af;margin-bottom:6px;text-transform:uppercase;letter-spacing:.8px}
+.war-count{font-size:60px;font-weight:900;color:#fff;line-height:1}
+.war-sub{font-size:11px;color:#4b5563;margin-top:5px}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:500;display:flex;align-items:center;justify-content:center;padding:14px}
+.modal{background:#111827;border:1px solid #374151;border-radius:14px;width:720px;max-width:100%;max-height:91vh;overflow:auto}
+.modal-hd{padding:16px 20px;border-bottom:1px solid #1f2937;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#111827;z-index:10}
+.modal-hd h2{font-size:15px;font-weight:700;color:#fff}
+.modal-body{padding:18px 20px}
+.ld-tabs{display:flex;gap:0;border-bottom:1px solid #1f2937;margin-bottom:14px}
+.ld-tab{padding:9px 16px;font-size:12px;font-weight:700;color:#6b7280;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.ld-tab.on{color:#fff;border-bottom-color:#8b5cf6}
+.ld-panel{display:none}.ld-panel.on{display:block}
+.call-timer{font-size:48px;font-weight:900;color:#10b981;text-align:center;font-variant-numeric:tabular-nums;margin:12px 0}
+.call-pulse{width:10px;height:10px;background:#10b981;border-radius:50%;display:inline-block;margin-right:5px;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.chat-msg{padding:7px 11px;border-radius:8px;margin-bottom:7px;font-size:12px;line-height:1.5}
+.chat-mine{background:#2e1065;color:#e9d5ff;margin-left:40px}
+.chat-other{background:#1f2937;color:#d1d5db;margin-right:40px}
+.chat-ts{font-size:10px;color:#4b5563;margin-top:2px}
+.comp-card{background:#1f2937;border-radius:8px;padding:11px 13px;margin-bottom:7px}
+.comp-addr{font-size:12px;font-weight:600;color:#e5e7eb;margin-bottom:3px}
+.comp-meta{font-size:11px;color:#6b7280}
+.comp-price{font-size:15px;font-weight:700;color:#10b981;margin-top:3px}
+.loi-preview{background:#0c0e14;border:1px solid #1f2937;border-radius:8px;padding:16px 20px;font-size:12px;line-height:1.7;color:#d1d5db;margin-top:12px}
+.loi-preview strong{color:#fff}
+.dbrow{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #1f2937;font-size:12px}
+.dbrow:last-child{border:none}.dblbl{color:#6b7280}.dbval{color:#e5e7eb;font-weight:600}
+.dbval.ok{color:#10b981}.dbval.bad{color:#f87171}.dbval.warn{color:#f59e0b}
+.mirror-banner{background:#451a03;color:#fbbf24;text-align:center;padding:10px;font-size:13px;font-weight:700}
+/* ── Board Card Rows (FU / Offers) ─────────────────────────────── */
+.brow{display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid #1a2030;transition:.15s;cursor:pointer}
+.brow:last-child{border-bottom:none}
+.brow:hover{background:#13171f}
+.brow-main{flex:1;min-width:0}
+.brow-name{font-size:15px;font-weight:800;color:#f1f5f9;margin-bottom:3px;letter-spacing:-.2px}
+.brow-addr{font-size:12px;color:#6b7280;margin-bottom:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brow-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.brow-side{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0}
+.status-sel{background:#1a2030;border:1px solid #374151;border-radius:7px;color:#e5e7eb;font-size:12px;font-weight:700;padding:5px 8px;cursor:pointer;outline:none;transition:.15s}
+.status-sel:hover{border-color:#8b5cf6}
+.status-sel:focus{border-color:#8b5cf6;box-shadow:0 0 0 2px #8b5cf633}
+.date-row{display:flex;align-items:center;gap:6px;font-size:11px;color:#6b7280}
+.date-row input[type=date]{background:#1a2030;border:1px solid #374151;border-radius:6px;color:#d1d5db;font-size:11px;padding:3px 6px;cursor:pointer;outline:none}
+.date-row input[type=date]:focus{border-color:#8b5cf6}
+.reminder-badge{font-size:10px;font-weight:700;background:#2e1065;color:#c4b5fd;border-radius:20px;padding:2px 7px}
+.reminder-badge.today{background:#451a03;color:#fbbf24}
+.reminder-badge.overdue{background:#450a0a;color:#f87171}
+/* Hot list photo cards */
+.hot-card{background:#111827;border:1px solid #374151;border-radius:10px;overflow:hidden;cursor:pointer;transition:.15s}
+.hot-card:hover{border-color:#8b5cf6;background:#13171f}
+.hc-photo{width:100%;height:110px;background:#1a1f2e;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.hc-photo img{width:100%;height:100%;object-fit:contain;background:#111827}
+.hc-info{padding:10px 12px}
+.hc-name{font-weight:800;color:#f1f5f9;font-size:13px;margin-bottom:2px}
+.hc-addr{font-size:11px;color:#6b7280;margin-bottom:6px}
+/* Server status dot */
+.srv-dot{width:8px;height:8px;border-radius:50%;background:#10b981;display:inline-block;margin-right:5px;flex-shrink:0;transition:background .4s}
+.srv-dot.dead{background:#f87171;animation:pulse-red 1.2s infinite}
+@keyframes pulse-red{0%,100%{opacity:1}50%{opacity:.3}}
+.srv-status{display:flex;align-items:center;font-size:11px;font-weight:700;color:#4b5563;white-space:nowrap}
+/* Tinder image shimmer */
+.img-shimmer{width:100%;height:200px;background:linear-gradient(90deg,#1a1f2e 25%,#252c3d 50%,#1a1f2e 75%);background-size:200% 100%;animation:shimmer 1.4s infinite}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+/* Graveyard */
+.gy-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.gy-card{background:#0d1117;border:1px solid #1f2937;border-radius:10px;padding:14px 16px;position:relative}
+.gy-card-name{font-size:14px;font-weight:800;color:#6b7280;margin-bottom:3px;text-decoration:line-through}
+.gy-card-addr{font-size:11px;color:#374151;margin-bottom:6px}
+.gy-card-reason{font-size:11px;font-weight:700;background:#1f2937;color:#f87171;border-radius:6px;padding:2px 7px;display:inline-block}
+.gy-card-meta{font-size:10px;color:#374151;margin-top:6px}
+/* Delete reason buttons */
+.del-reason-btn{width:100%;text-align:left;background:#1a2030;border:1px solid #374151;border-radius:8px;color:#d1d5db;font-size:13px;font-weight:600;padding:9px 14px;cursor:pointer;transition:.15s}
+.del-reason-btn:hover,.del-reason-btn.sel{background:#2e1065;border-color:#8b5cf6;color:#c4b5fd}
+/* Dashboard cards (new visual layout) */
+.dash-lead-grid{display:flex;flex-direction:column;gap:6px}
+.dash-lcard{display:flex;align-items:center;gap:12px;padding:12px 16px;background:#0d1117;border:1px solid #1f2937;border-radius:10px;transition:.15s}
+.dash-lcard.caller-aengus{border-left:3px solid #a78bfa}
+.dash-lcard.caller-michael{border-left:3px solid #f59e0b}
+.dash-lcard.caller-together{border-left:3px solid #10b981}
+.dash-lcard:hover{border-color:#374151;background:#111827}
+.dash-lcard-main{flex:1;min-width:0}
+.dash-lcard-name{font-size:14px;font-weight:800;color:#f1f5f9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dash-lcard-addr{font-size:11px;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.dash-lcard-meta{display:flex;align-items:center;gap:6px;margin-top:5px;flex-wrap:wrap}
+.dash-lcard-side{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0}
+.dash-lcard-side select{background:#1a2030;border:1px solid #374151;border-radius:7px;color:#e5e7eb;font-size:11px;font-weight:700;padding:4px 7px;cursor:pointer;outline:none}
+.dash-lcard-phone{font-size:11px;color:#4b5563;white-space:nowrap}
+.dash-lcard-created{font-size:10px;color:#374151;white-space:nowrap}
+</style>
+</head>
+<body>
+
+<div id="mirror-banner" class="mirror-banner" style="display:none">MIRROR MODE -- Read-Only Partner View</div>
+
+<div class="nav" id="main-nav">
+  <div class="brand">Gonzo <span>Wolf</span></div>
+  <!-- LEADS group -->
+  <div class="tab on" onclick="go('dashboard',this)" title="All leads">Dashboard</div>
+  <div class="tab" onclick="go('tinder',this)" title="Swipe queue">Tinder</div>
+  <div class="tab" onclick="go('hotlist',this)" title="Hot leads">Hot List</div>
+  <div class="tab" onclick="go('map',this)" title="Map view">Map</div>
+  <div class="nav-sep"></div>
+  <!-- PIPELINE group -->
+  <div class="tab" onclick="go('offers',this)" title="Offer Sent board">Offers</div>
+  <div class="tab" onclick="go('followups',this)" title="Follow-Up board">Follow-Ups</div>
+  <div class="tab" onclick="go('warboard',this)" title="Call leaderboard">War Board</div>
+  <div class="nav-sep"></div>
+  <!-- TOOLS group -->
+  <div class="tab" onclick="go('import',this)" title="Import leads">Import</div>
+  <div class="tab" onclick="go('loi',this)" title="LOI generator">LOI</div>
+  <div class="tab" onclick="go('graveyard',this)" title="Deleted leads">🪦 Graveyard</div>
+  <div class="tab" onclick="go('settings',this)" title="Settings">⚙</div>
+  <div style="margin-left:auto;padding:7px 0;flex-shrink:0;display:flex;align-items:center;gap:10px">
+    <div class="srv-status" id="srv-status" title="Local server status"><span class="srv-dot" id="srv-dot"></span><span id="srv-label">Server</span></div>
+    <button class="btn btn-db btn-sm" onclick="openDebug()">Debug</button>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="pg-dashboard" class="page on">
+  <div id="dash-spin" class="spin-wrap"><span class="sp"></span>Loading boards...</div>
+  <div id="dash-body" style="display:none">
+    <div class="cards" id="dash-cards"></div>
+    <div class="panel">
+      <div class="ph"><h2>Direct to Agent Pipeline</h2><span class="badge" id="d2a-ct">--</span><button onclick="G.leads=null;loadDash();showBanner('Refreshing from Monday…','ok')" style="margin-left:10px;padding:3px 10px;font-size:11px;font-weight:700;border-radius:6px;border:1px solid #374151;background:#1f2937;color:#9ca3af;cursor:pointer">↺ Refresh</button></div>
+      <div style="margin-bottom:10px">
+        <input id="dash-search-input" type="text" placeholder="🔍  Search name, address, or phone…" oninput="dashSetSearch(this.value)" style="width:100%;box-sizing:border-box;background:#1f2937;border:1px solid #374151;border-radius:8px;color:#e5e7eb;font-size:13px;padding:8px 12px;outline:none">
+      </div>
+      <div class="pb" id="d2a-tbl"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MAP -->
+<div id="pg-map" class="page">
+  <div id="map-spin" class="spin-wrap"><span class="sp"></span>Loading leads for map...</div>
+  <div id="map-container" style="display:none"></div>
+</div>
+
+<!-- TINDER -->
+<div id="pg-tinder" class="page">
+  <div style="text-align:center;margin-bottom:14px">
+    <div style="font-size:12px;color:#4b5563;margin-bottom:6px">LEFT = Skip/Delete  |  UP = Hot List  |  RIGHT = Keep</div>
+    <div id="tinder-count" style="font-size:12px;color:#6b7280"></div>
+  </div>
+  <div id="tinder-spin" class="spin-wrap" style="display:none"><span class="sp"></span>Loading queue...</div>
+  <div id="tinder-stage"></div>
+  <div class="tinder-btns">
+    <button class="tbtn tbtn-l" onclick="tinderSwipe('left')" title="Skip">X</button>
+    <button class="tbtn tbtn-u" onclick="tinderSwipe('up')" title="Hot List">*</button>
+    <button class="tbtn tbtn-r" onclick="tinderSwipe('right')" title="Keep">V</button>
+  </div>
+  <div id="tinder-done" style="display:none;text-align:center;padding:40px">
+    <div style="font-size:38px;margin-bottom:10px">Done!</div>
+    <div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:6px">Queue cleared!</div>
+    <div style="font-size:12px;color:#6b7280;margin-bottom:18px">Every lead reviewed.</div>
+    <button class="btn btn-p" onclick="resetTinder()">Reset Queue</button>
+  </div>
+</div>
+
+<!-- HOT LIST -->
+<div id="pg-hotlist" class="page">
+  <div class="panel">
+    <div class="ph"><h2>Hot List</h2><span class="badge" id="hot-ct">0</span></div>
+    <div class="pb">
+      <div id="hot-empty" class="al al-info">No hot leads yet. Swipe UP on Tinder cards to add leads here.</div>
+      <div class="hot-grid" id="hot-grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- WAR BOARD -->
+<div id="pg-warboard" class="page">
+  <div class="panel" style="max-width:560px;margin:0 auto">
+    <div class="ph"><h2>War Board -- Call Leaderboard</h2>
+      <button class="btn btn-db btn-sm" onclick="syncWarBoard()">Sync from Monday</button>
+    </div>
+    <div class="pb">
+      <div class="war-grid" id="war-grid"></div>
+      <div id="war-sync-msg" style="text-align:center;font-size:11px;color:#4b5563;margin-top:6px"></div>
+      <div style="margin-top:14px;border-top:1px solid #1f2937;padding-top:14px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#4b5563;margin-bottom:8px">Recent Call Log</div>
+        <div id="war-log" style="font-size:12px;color:#6b7280"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- IMPORT -->
+<div id="pg-import" class="page">
+  <div class="panel">
+    <div class="ph"><h2>Import Leads to Direct to Agent</h2><span class="badge">CSV + Screenshots</span></div>
+    <div class="pb">
+      <div class="al al-info">Drop CSV/text files and deal screenshots. Parses leads, matches screenshots, pushes to Monday. No geocoding delays.</div>
+      <div class="two">
+        <div class="dz" id="dz-txt" onclick="document.getElementById('fi-txt').click()">
+          <div class="ico">D</div><h3>Lead files</h3><p>CSV, TXT, any format</p>
+          <input id="fi-txt" type="file" multiple accept=".csv,.txt,.tsv" style="display:none" onchange="stageTxt(this.files)">
+        </div>
+        <div class="dz" id="dz-img" onclick="document.getElementById('fi-img').click()">
+          <div class="ico">IMG</div><h3>Screenshots</h3><p>JPG, PNG, HEIC</p>
+          <input id="fi-img" type="file" multiple accept="image/*" style="display:none" onchange="stageImg(this.files)">
+        </div>
+      </div>
+      <div id="staged-msg" style="display:none" class="al al-info"></div>
+      <div style="margin-bottom:12px;display:none" id="parse-wrap">
+        <button class="btn btn-p" onclick="parseAll()" style="font-size:13px;padding:10px 22px">Parse and Preview</button>
+      </div>
+      <div id="imp-spin" style="display:none" class="spin-wrap"><span class="sp"></span>Parsing files...</div>
+      <div id="imp-preview" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+          <h3 id="prev-title" style="font-size:14px;font-weight:700;color:#fff"></h3>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="btn btn-warn btn-sm" onclick="checkDuplicates()" id="dup-btn">Check Dupes</button>
+            <button class="btn btn-p" onclick="pushToMonday()" id="push-btn" style="font-size:13px;padding:9px 20px">Import All to Monday</button>
+          </div>
+        </div>
+        <div id="dup-result" style="display:none;margin-bottom:8px"></div>
+        <div class="panel" style="margin-bottom:0"><div class="pb" id="prev-tbl"></div></div>
+      </div>
+      <div id="imp-results" style="display:none;margin-top:14px"></div>
+    </div>
+  </div>
+
+  <!-- Repair tool -->
+  <div class="panel" style="margin-top:18px;border:1px solid #2a3550">
+    <div class="ph" style="font-size:13px;font-weight:700;color:#94a3b8;letter-spacing:.5px;margin-bottom:10px">🔧 ADDRESS REPAIR TOOL</div>
+    <div style="font-size:13px;color:#64748b;margin-bottom:12px">Finds all leads where Monday's Address column is empty but the Zillow link has an address, and backfills them. Run once after the original bad imports.</div>
+    <button class="btn btn-warn btn-sm" onclick="repairAddresses()" id="repair-btn" style="font-size:13px;padding:8px 18px">Repair Addresses</button>
+    <div id="repair-result" style="margin-top:10px;font-size:13px"></div>
+  </div>
+</div>
+
+<!-- OFFERS -->
+<div id="pg-offers" class="page">
+  <div id="off-spin" class="spin-wrap"><span class="sp"></span>Loading offers...</div>
+  <div id="off-body" style="display:none">
+    <div class="cards" id="off-cards"></div>
+    <div class="panel"><div class="ph"><h2>Offer Sent Board</h2><span class="badge" id="off-ct">--</span></div>
+      <div class="pb" id="off-tbl"></div></div>
+  </div>
+</div>
+
+<!-- FOLLOW-UPS -->
+<div id="pg-followups" class="page">
+  <div id="fu-spin" class="spin-wrap"><span class="sp"></span>Loading follow-ups...</div>
+  <div id="fu-body" style="display:none">
+    <div class="panel"><div class="ph"><h2>Follow-Up Board</h2><span class="badge" id="fu-ct">--</span></div>
+      <div class="pb" id="fu-tbl"></div></div>
+  </div>
+</div>
+
+<!-- LOI -->
+<div id="pg-loi" class="page">
+  <div class="panel"><div class="ph"><h2>LOI / Offer Generator</h2><span class="badge">Gonzo Holdings LLC</span></div>
+    <div class="pb">
+      <div class="al al-info" style="margin-bottom:16px">Enter address and offer amount to generate a ready-to-send LOI.</div>
+      <div style="max-width:520px">
+        <div class="fg"><label>Property Address</label><input type="text" id="loi-addr" placeholder="123 Main St, Tampa, FL 33601"></div>
+        <div class="two">
+          <div class="fg"><label>Cash Offer Amount</label><input type="text" id="loi-offer" placeholder="$95,000"></div>
+          <div class="fg"><label>Date</label><input type="text" id="loi-date"></div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <button class="btn btn-p" onclick="generateLOI()" id="loi-btn" style="font-size:13px;padding:10px 20px">Generate and Download LOI</button>
+          <button class="btn btn-g btn-sm" onclick="previewLOI()">Preview</button>
+        </div>
+        <div id="loi-msg" style="margin-top:10px"></div>
+        <div id="loi-preview" class="loi-preview" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div id="pg-settings" class="page">
+  <div class="panel"><div class="ph"><h2>Settings</h2></div>
+    <div class="pb">
+      <div id="set-msg"></div>
+      <div style="max-width:460px">
+        <div class="fg"><label>Monday API Token (v2)</label>
+          <input type="password" id="tok-input" placeholder="eyJhbGciOiJIUzI1NiJ9...">
+          <div class="hint">monday.com -- Profile -- Developers -- API Token v2</div></div>
+        <div class="fg"><label>Who am I?</label>
+          <select id="caller-select"><option value="aengus">Aengus</option><option value="michael">Michael</option></select></div>
+        <div class="fg"><label>Display Name (for call pings)</label><input type="text" id="agent-name-input" placeholder="Aengus"></div>
+        <div class="fg"><label>My Phone Number</label><input type="text" id="agent-phone-input" placeholder="(305) 555-0100"></div>
+        <button class="btn btn-p" onclick="saveSettings()" style="font-size:13px;padding:10px 20px">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Share Link -->
+  <div class="panel" style="margin-top:16px">
+    <div class="ph"><h2>📤 Share with Michael</h2></div>
+    <div class="pb">
+      <div style="font-size:13px;color:#9ca3af;margin-bottom:14px">
+        Generates a fresh link with a cache-buster so Michael always loads the latest version. Send it to him and he just opens it — no hard refresh needed.
+      </div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <input id="share-link-box" type="text" readonly
+          style="flex:1;background:#1f2937;border:1px solid #374151;border-radius:8px;color:#a78bfa;font-size:12px;padding:9px 12px;font-family:monospace;outline:none;cursor:pointer"
+          onclick="this.select()"
+          value="https://oaengus05-ship-it.github.io/mike-gonzo-app/">
+        <button class="btn btn-p" onclick="copyShareLink()" style="white-space:nowrap;padding:9px 18px">Copy Link</button>
+      </div>
+      <div id="share-link-msg" style="font-size:12px;color:#10b981;margin-top:8px;display:none">✓ Copied to clipboard!</div>
+    </div>
+  </div>
+</div>
+
+<!-- GRAVEYARD -->
+<div id="pg-graveyard" class="page">
+  <div class="panel">
+    <div class="ph" style="display:flex;align-items:center;gap:12px">
+      <h2 style="margin:0">🪦 Graveyard</h2>
+      <span id="gy-ct" class="badge" style="background:#1f2937;color:#6b7280">0</span>
+      <button class="btn btn-sm" style="margin-left:auto;background:#7f1d1d;color:#fca5a5;border:none;font-size:11px" onclick="clearGraveyard()">Clear All</button>
+    </div>
+    <div style="font-size:13px;color:#4b5563;margin-bottom:12px">Leads deleted from Tinder or manually. Stored locally — won't come back from Monday.</div>
+    <div id="gy-grid"></div>
+  </div>
+</div>
+
+<!-- DELETE REASON POPUP -->
+<div id="del-popup" class="modal-bg" style="display:none">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-hd"><h2>Why are you deleting this?</h2></div>
+    <div class="modal-body" style="padding:16px">
+      <div id="del-popup-name" style="font-size:14px;font-weight:700;color:#f1f5f9;margin-bottom:14px"></div>
+      <div id="del-reasons" style="display:flex;flex-direction:column;gap:8px"></div>
+      <input id="del-custom-reason" type="text" placeholder="Other reason…" style="margin-top:10px;width:100%;box-sizing:border-box;background:#1a2030;border:1px solid #374151;border-radius:8px;color:#e5e7eb;font-size:13px;padding:8px 10px;outline:none;display:none">
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button class="btn btn-sm" style="background:#1f2937;color:#6b7280;border:1px solid #374151" onclick="closeDeletePopup()">Cancel</button>
+        <button class="btn btn-p btn-sm" onclick="confirmDeleteWithReason()" style="flex:1">Delete Lead</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LEAD DETAIL MODAL -->
+<div id="ld-modal" class="modal-bg" style="display:none" onclick="if(event.target===this)closeLead()">
+  <div class="modal">
+    <div class="modal-hd">
+      <h2 id="ld-title">Lead Detail</h2>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn btn-g btn-sm" id="ld-mirror-btn" onclick="copyMirrorLink()">Mirror Link</button>
+        <button class="btn btn-g btn-sm" onclick="closeLead()">X Close</button>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div class="ld-tabs">
+        <div class="ld-tab on" onclick="ldTab('info',this)">Info</div>
+        <div class="ld-tab" onclick="ldTab('photo',this)">📸 Photo</div>
+        <div class="ld-tab" onclick="ldTab('comps',this)">Auto Comps</div>
+        <div class="ld-tab" onclick="ldTab('call',this)">Call</div>
+        <div class="ld-tab" onclick="ldTab('chat',this)">Chat</div>
+      </div>
+      <div id="ld-info" class="ld-panel on"><div id="ld-info-body"></div></div>
+      <div id="ld-photo" class="ld-panel"><div id="ld-photo-body" style="text-align:center;padding:10px"></div></div>
+      <div id="ld-comps" class="ld-panel">
+        <div id="ld-comps-body">
+          <div style="text-align:center;padding:18px">
+            <button class="btn btn-p" onclick="loadComps()">Pull Auto Comps</button>
+          </div>
+        </div>
+      </div>
+      <div id="ld-call" class="ld-panel"><div id="ld-call-body"></div></div>
+      <div id="ld-chat" class="ld-panel">
+        <div id="ld-chat-msgs" style="max-height:280px;overflow-y:auto;margin-bottom:10px"></div>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="chat-input" placeholder="Type a message..." style="flex:1;background:#1f2937;border:1px solid #374151;border-radius:8px;padding:8px 11px;color:#fff;font-size:13px;outline:none" onkeydown="if(event.key==='Enter')sendChat()">
+          <button class="btn btn-p btn-sm" onclick="sendChat()">Send</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DEBUG MODAL -->
+<div id="debug-modal" class="modal-bg" style="display:none" onclick="if(event.target===this)closeDebug()">
+  <div class="modal">
+    <div class="modal-hd"><h2>Debug Panel</h2><button class="btn btn-g btn-sm" onclick="closeDebug()">X</button></div>
+    <div class="modal-body" id="debug-body"></div>
+  </div>
+</div>
+
+<script>
+// CONFIG
+const BOARD_DTA = '18395793014';
+const BOARD_OFF = '18409274965';
+const BOARD_FU  = '18409275480';
+const API       = 'https://api.monday.com/v2';
+const SERVER    = 'http://localhost:8080';
+const SAVED_TOKEN = 'eyJhbGciOiJIUzI1NiJ9.eyJ0aWQiOjYzOTA5OTkwMCwiYWFpIjoxMSwidWlkIjo5ODQzMTkyMSwiaWFkIjoiMjAyNi0wMy0yOVQyMDozNzoyMy4wMDBaIiwicGVyIjoibWU6d3JpdGUiLCJhY3RpZCI6MzMzMjI5ODIsInJnbiI6InVzZTEifQ.ALe0mYyIFWtD0K-Uq-FtLY9QbwnU-XCaX-ZYeNq0EpQ';
+
+// STATE
+const G = {
+  leads: null,
+  map: null,
+  markers: [],
+  tinderQueue: [],
+  tinderIdx: 0,
+  hotList: new Set(JSON.parse(localStorage.getItem('gonzo_hotlist') || '[]')),
+  seenInTinder: new Set(JSON.parse(localStorage.getItem('gonzo_tinder_seen') || '[]')),
+  activeLead: null,
+  callActive: false,
+  callStart: null,
+  callTimerInterval: null,
+  chatInterval: null,
+  chatItemId: null,
+  mirrorMode: false,
+};
+
+// SETTINGS
+function getToken()     { return localStorage.getItem('gonzo_token') || SAVED_TOKEN; }
+function getCaller()    { return localStorage.getItem('gonzo_caller') || 'aengus'; }
+function getAgentName() { return localStorage.getItem('gonzo_agent_name') || (getCaller() === 'aengus' ? 'Aengus' : 'Michael'); }
+function getAgentPhone(){ return localStorage.getItem('gonzo_agent_phone') || ''; }
+
+// SERVER STATUS
+(function pingSrv() {
+  var dot = document.getElementById('srv-dot');
+  var lbl = document.getElementById('srv-label');
+  fetch(SERVER + '/proxy/image', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{"url":""}', signal: AbortSignal.timeout(3000)})
+    .then(function() { dot.className='srv-dot'; lbl.textContent='Server'; })
+    .catch(function() { dot.className='srv-dot dead'; lbl.textContent='Server Down'; });
+  setTimeout(pingSrv, 12000);
+})();
+
+function saveSettings() {
+  const t = document.getElementById('tok-input').value.trim();
+  const c = document.getElementById('caller-select').value;
+  const n = document.getElementById('agent-name-input').value.trim();
+  const p = document.getElementById('agent-phone-input').value.trim();
+  if(t) localStorage.setItem('gonzo_token', t);
+  localStorage.setItem('gonzo_caller', c);
+  if(n) localStorage.setItem('gonzo_agent_name', n);
+  if(p) localStorage.setItem('gonzo_agent_phone', p);
+  const m = document.getElementById('set-msg');
+  m.innerHTML = '<div class="al al-ok">Saved!</div>';
+  setTimeout(() => m.innerHTML = '', 3000);
+}
+
+function copyShareLink() {
+  var base = 'https://oaengus05-ship-it.github.io/mike-gonzo-app/';
+  var link = base + '?v=' + Date.now();
+  document.getElementById('share-link-box').value = link;
+  navigator.clipboard.writeText(link).then(function() {
+    var msg = document.getElementById('share-link-msg');
+    msg.style.display = 'block';
+    setTimeout(function() { msg.style.display = 'none'; }, 2500);
+  }).catch(function() {
+    document.getElementById('share-link-box').select();
+  });
+}
+
+// MONDAY API
+async function mq(query, variables) {
+  variables = variables || {};
+  const r = await fetch(API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': getToken(), 'API-Version': '2024-01' },
+    body: JSON.stringify({ query: query, variables: variables })
+  });
+  const j = await r.json();
+  if(j.errors) console.error('Monday API error:', JSON.stringify(j.errors));
+  return j;
+}
+// Like mq() but throws if Monday returns GraphQL errors (use for mutations where failure matters)
+async function mqMutate(query, variables) {
+  const j = await mq(query, variables);
+  if(j.errors && j.errors.length) {
+    var msg = (j.errors[0] && j.errors[0].message) ? j.errors[0].message : 'Monday API error';
+    throw new Error(msg);
+  }
+  return j;
+}
+
+// TAB NAV
+function go(name, el) {
+  if(G.mirrorMode) return;
+  document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('on'); });
+  document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('on'); });
+  document.getElementById('pg-' + name).classList.add('on');
+  el.classList.add('on');
+  if(name === 'dashboard') loadDash();
+  if(name === 'map')       loadMap();
+  if(name === 'tinder')    loadTinder();
+  if(name === 'hotlist')   renderHotList();
+  if(name === 'warboard')  renderWarBoard();
+  if(name === 'offers')    loadOffers();
+  if(name === 'followups') loadFU();
+  if(name === 'loi')       document.getElementById('loi-date').value = todayStr();
+  if(name === 'graveyard') renderGraveyard();
+}
+
+// HELPERS
+function pill(s) {
+  if(!s) return '<span class="pill p-blank">--</span>';
+  var l = s.toLowerCase();
+  if(l.indexOf('accept') >= 0)    return '<span class="pill p-acc">' + s + '</span>';
+  if(l.indexOf('sent') >= 0)      return '<span class="pill p-sent">' + s + '</span>';
+  if(l.indexOf('pending') >= 0)   return '<span class="pill p-pend">' + s + '</span>';
+  if(l.indexOf('decline') >= 0)   return '<span class="pill p-dec">' + s + '</span>';
+  if(l.indexOf('voicemail') >= 0) return '<span class="pill p-vm">' + s + '</span>';
+  if(l.indexOf('calling') >= 0)   return '<span class="pill p-cb">' + s + '</span>';
+  if(l.indexOf('not started') >= 0) return '<span class="pill p-ns">' + s + '</span>';
+  return '<span class="pill p-blank">' + s + '</span>';
+}
+function callerBadge(c) {
+  if(!c) return '';
+  var l = (c || '').toLowerCase();
+  if(l.indexOf('aengus') >= 0)  return '<span class="ca">aengus</span>';
+  if(l.indexOf('michael') >= 0) return '<span class="cm">michael</span>';
+  if(l.indexOf('together') >= 0)return '<span class="ct">together</span>';
+  return '<span class="ca">' + e(c) + '</span>';
+}
+function e(s) {
+  return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function fmt$(n) { return n ? '$' + Number(n).toLocaleString() : '--'; }
+function todayStr() {
+  var d = new Date();
+  return d.toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+}
+
+// ─── LOCAL STATUS STORE (localStorage + Monday updates sync) ───────────────
+function getLocalStatus(itemId) {
+  try { return JSON.parse(localStorage.getItem('gz_st_' + itemId) || 'null'); } catch(e) { return null; }
+}
+function setLocalStatus(itemId, status, caller) {
+  var ex = getLocalStatus(itemId) || {};
+  if(status  !== undefined) ex.status = status;
+  if(caller  !== undefined) ex.caller = caller;
+  ex.ts = Date.now();
+  localStorage.setItem('gz_st_' + itemId, JSON.stringify(ex));
+}
+function changeLeadStatus(itemId, newStatus) {
+  setLocalStatus(itemId, newStatus, undefined);
+  if(G.leads) { var _l = G.leads.find(function(x){return x.id===itemId;}); if(_l) _l.status = newStatus; }
+  // Post Monday update so Michael's app picks it up on next load
+  mq('mutation{create_update(item_id:' + itemId + ',body:"📊 STATUS: ' + newStatus.replace(/"/g,"'") + '"){id}}').catch(function(){});
+
+  // Handle exits from dashboard
+  if(newStatus === 'Not interested') {
+    // Soft-archive to graveyard (no Monday delete)
+    var lead = G.leads ? G.leads.find(function(x){return x.id===itemId;}) : null;
+    var gy = gyLoad();
+    gy.push({ id: itemId, name: lead ? (lead.name||'') : itemId,
+      address: lead ? (lead.address||'') : '', status: 'Not interested',
+      type: lead ? (lead.type||'') : '', caller: lead ? (lead.caller||'') : '',
+      phone: lead ? (lead.phone||'') : '', reason: 'Not interested', deletedAt: Date.now() });
+    gySave(gy);
+    if(G.leads) G.leads = G.leads.filter(function(x){return x.id!==itemId;});
+    showBanner('👎 Moved to Graveyard', 'ok');
+    renderDashTable();
+    return;
+  }
+  if(newStatus === 'Offer Sent') {
+    showBanner('📝 Moved to Offers tab', 'ok');
+  } else {
+    showBanner('✓ ' + (newStatus || 'Blank'), 'ok');
+  }
+  renderDashTable();
+}
+function changeLeadCaller(itemId, newCaller, selectEl) {
+  setLocalStatus(itemId, undefined, newCaller);
+  if(G.leads) { var _l = G.leads.find(function(x){return x.id===itemId;}); if(_l) _l.caller = newCaller; }
+  mq('mutation{create_update(item_id:' + itemId + ',body:"📊 CALLER: ' + (newCaller||'').replace(/"/g,"'") + '"){id}}').catch(function(){});
+  renderDashTable();
+  showBanner('✓ Caller → ' + (newCaller || 'blank'), 'ok');
+}
+
+// Background sync: fetch Monday updates to pull in partner's status/caller changes
+async function syncUpdatesFromMonday() {
+  if(!G.leads || !G.leads.length) return;
+  try {
+    var ids = G.leads.map(function(l){return l.id;}).slice(0, 100); // max 100 at a time
+    var d = await mq('query{items(ids:[' + ids.join(',') + ']){id updates(limit:5){body created_at}}}');
+    if(!d || !d.data || !d.data.items) return;
+    var changed = false;
+    d.data.items.forEach(function(item) {
+      var lead = G.leads.find(function(l){return l.id === item.id;});
+      if(!lead) return;
+      var local = getLocalStatus(item.id) || {};
+      var mondayStatus = null, mondayStatusTs = 0;
+      var mondayCaller = null, mondayCallerTs = 0;
+      (item.updates || []).forEach(function(u) {
+        var ts = u.created_at ? new Date(u.created_at).getTime() : 0;
+        var body = (u.body || '').replace(/<[^>]+>/g,'').trim();
+        var sm = body.match(/^📊 STATUS: (.+)$/m);
+        if(sm && ts > mondayStatusTs) { mondayStatus = sm[1].trim(); mondayStatusTs = ts; }
+        var cm = body.match(/^📊 CALLER: (.+)$/m);
+        if(cm && ts > mondayCallerTs) { mondayCaller = cm[1].trim(); mondayCallerTs = ts; }
+      });
+      // Only apply Monday's value if it's newer than local
+      if(mondayStatus !== null && mondayStatusTs > (local.ts || 0) && mondayStatus !== lead.status) {
+        lead.status = mondayStatus;
+        setLocalStatus(item.id, mondayStatus, undefined);
+        changed = true;
+      }
+      if(mondayCaller !== null && mondayCallerTs > (local.ts || 0) && mondayCaller !== lead.caller) {
+        lead.caller = mondayCaller;
+        setLocalStatus(item.id, undefined, mondayCaller);
+        changed = true;
+      }
+    });
+    if(changed) renderDashTable();
+  } catch(e) { /* silent — sync is best-effort */ }
+}
+
+// FETCH AND CACHE LEADS
+async function fetchLeads(force) {
+  if(G.leads && !force) return G.leads;
+  var d = await mq('query{boards(ids:["' + BOARD_DTA + '"]){items_page(limit:300){items{id name created_at column_values(ids:["location","lead_status","color_mkr63b1e","color_mm2d2tdx","lead_phone","text_mm03pxpa","link_mm2htak3","file_mm00yfek"]){id text value}}}}}');
+  var raw = (d && d.data && d.data.boards && d.data.boards[0] && d.data.boards[0].items_page && d.data.boards[0].items_page.items) ? d.data.boards[0].items_page.items : [];
+
+  // First pass: parse all lead data and collect assetIds
+  var assetIdToLeadIdx = {};
+  G.leads = raw.map(function(item, idx) {
+    var c = {};
+    item.column_values.forEach(function(cv) { c[cv.id] = { text: cv.text || '', value: cv.value || '' }; });
+    var lat = null, lng = null;
+    try {
+      var locVal = JSON.parse(c.location ? c.location.value : '{}');
+      lat = parseFloat(locVal.lat); lng = parseFloat(locVal.lng);
+      if(isNaN(lat)) lat = null; if(isNaN(lng)) lng = null;
+    } catch(err) {}
+    var fileUrl = null;
+    var assetId = null;
+    try {
+      var fv = JSON.parse(c.file_mm00yfek ? c.file_mm00yfek.value : 'null');
+      if(fv && fv.files && fv.files.length) {
+        var f0 = fv.files[0];
+        if(f0.fileType === 'ASSET') {
+          assetId = f0.assetId || f0.id || null;  // Collect assetId for batch public_url query
+          assetIdToLeadIdx[assetId] = idx;
+        } else if(f0.fileType === 'LINK') {
+          fileUrl = f0.linkToFile || f0.url || null;
+        } else {
+          fileUrl = f0.url_thumbnail || f0.url || f0.linkToFile || null;
+        }
+      }
+    } catch(ferr) {}
+    return {
+      id: item.id, name: item.name,
+      createdAt: item.created_at || '',
+      address: (function(){
+        var a = c.location ? c.location.text : '';
+        if(!a && c.link_mm2htak3) {
+          // Fallback: pull address from Zillow link text (set during import)
+          var zt = c.link_mm2htak3.text || '';
+          if(zt && zt !== 'View on Zillow' && /^\d/.test(zt)) a = zt;
+        }
+        return a;
+      })(),
+      status:  c.lead_status ? c.lead_status.text : '',
+      type:    c.color_mkr63b1e ? c.color_mkr63b1e.text : '',
+      caller:  c.color_mm2d2tdx ? c.color_mm2d2tdx.text : '',
+      phone:   (function(raw){ var d=(raw||'').replace(/\D/g,''); if(d.length===11&&d[0]==='1') d=d.slice(1); return d.length===10?'('+d.slice(0,3)+') '+d.slice(3,6)+'-'+d.slice(6):raw||''; })(c.lead_phone ? c.lead_phone.text : ''),
+      notes:   c.text_mm03pxpa ? c.text_mm03pxpa.text : '',
+      zillow:  c.link_mm2htak3 ? c.link_mm2htak3.text : '',
+      fileUrl: fileUrl,
+      assetId: assetId,
+      lat: lat, lng: lng
+    };
+  });
+
+  // Second pass: batch fetch public_url for all ASSET type files
+  var assetIds = Object.keys(assetIdToLeadIdx).filter(Boolean);
+  if(assetIds.length > 0) {
+    try {
+      // Monday supports up to ~100 asset IDs at once
+      var chunks = [];
+      for(var i = 0; i < assetIds.length; i += 80) chunks.push(assetIds.slice(i, i + 80));
+      for(var ci = 0; ci < chunks.length; ci++) {
+        var assetD = await mq('query{assets(ids:[' + chunks[ci].join(',') + ']){id public_url}}');
+        if(assetD && assetD.data && assetD.data.assets) {
+          assetD.data.assets.forEach(function(a) {
+            var leadIdx = assetIdToLeadIdx[a.id];
+            if(leadIdx !== undefined && a.public_url) {
+              G.leads[leadIdx].fileUrl = a.public_url;
+            }
+          });
+        }
+      }
+    } catch(assetErr) {
+      console.warn('Asset public_url fetch failed:', assetErr.message);
+    }
+  }
+
+  // Third pass: overlay localStorage statuses (instant, no API needed)
+  G.leads.forEach(function(lead) {
+    var local = getLocalStatus(lead.id);
+    if(local) {
+      if(local.status !== undefined) lead.status = local.status;
+      if(local.caller !== undefined) lead.caller = local.caller;
+    }
+  });
+
+  return G.leads;
+}
+
+// DASHBOARD
+var _dashSort = 'newest';       // newest | oldest | type | status
+var _dashStatusTab = '';        // '' = All, or a status string
+var _dashTypeFilter = '';       // '' = all, or a type string
+var _dashCallerFilter = '';     // '' = all, 'aengus', 'michael'
+var _dashSearch = '';           // free-text search: name, address, phone
+
+function fmtCreated(iso) {
+  if(!iso) return '--';
+  var d = new Date(iso);
+  if(isNaN(d.getTime())) return '--';
+  var now = new Date();
+  var diffDays = Math.floor((now - d) / 86400000);
+  if(diffDays === 0) return 'Today';
+  if(diffDays === 1) return 'Yesterday';
+  if(diffDays < 7)  return diffDays + 'd ago';
+  return d.toLocaleDateString('en-US', { month:'short', day:'numeric' });
+}
+
+// Status tab config — Offer Sent and Not Interested handled elsewhere
+var STATUS_TABS = [
+  { key: '',             label: 'All',           color: '#8b5cf6' },
+  { key: 'Voicemail',   label: '📞 Voicemail',  color: '#a78bfa' },
+  { key: 'Calling back',label: '🔁 Calling Back',color: '#38bdf8' },
+  { key: 'Follow Up',   label: '📅 Follow Up',   color: '#f59e0b' },
+  { key: 'Do Not Call', label: '🚫 DNC',          color: '#f87171' },
+];
+// Statuses that leave the dashboard entirely
+var STATUS_EXITS = { 'Offer Sent': 'offers', 'Not interested': 'graveyard' };
+
+function renderDashTable() {
+  var leads = G.leads || [];
+
+  // ── Status tab bar ──────────────────────────────────────────────────────
+  var tabBar = '<div style="display:flex;gap:0;overflow-x:auto;margin-bottom:14px;border-bottom:2px solid #1f2937;padding-bottom:0;scrollbar-width:none">';
+  STATUS_TABS.forEach(function(t) {
+    var dashLeads = leads.filter(function(l){ return !STATUS_EXITS[l.status||'']; });
+    var count = t.key === '' ? dashLeads.length : dashLeads.filter(function(l){ return (l.status||'') === t.key; }).length;
+    var active = _dashStatusTab === t.key;
+    tabBar += '<button onclick="dashSetStatusTab(\'' + t.key.replace(/'/g,"\\'") + '\')" style="' +
+      'flex-shrink:0;padding:7px 13px;font-size:12px;font-weight:700;border:none;border-bottom:3px solid ' +
+      (active ? t.color : 'transparent') + ';background:transparent;color:' + (active ? t.color : '#6b7280') +
+      ';cursor:pointer;white-space:nowrap">' + t.label +
+      ' <span style="font-size:10px;opacity:0.75">' + count + '</span></button>';
+  });
+  tabBar += '</div>';
+
+  // ── Filters ─────────────────────────────────────────────────────────────
+  // Always exclude leads that have exited the dashboard to other sections
+  var filtered = leads.filter(function(l){ return !STATUS_EXITS[l.status||'']; });
+  if(_dashStatusTab) filtered = filtered.filter(function(l){ return (l.status||'') === _dashStatusTab; });
+  if(_dashSearch) {
+    var q = _dashSearch.toLowerCase();
+    filtered = filtered.filter(function(l) {
+      return (l.name||'').toLowerCase().indexOf(q) >= 0 ||
+             (l.address||'').toLowerCase().indexOf(q) >= 0 ||
+             (l.phone||'').toLowerCase().indexOf(q) >= 0;
+    });
+  }
+  if(_dashCallerFilter) filtered = filtered.filter(function(l) { return (l.caller||'').toLowerCase().indexOf(_dashCallerFilter) >= 0; });
+  if(_dashTypeFilter)   filtered = filtered.filter(function(l) { return (l.type||'').toLowerCase() === _dashTypeFilter.toLowerCase(); });
+
+  var sorted = filtered.slice();
+  if(_dashSort === 'newest') sorted.sort(function(a,b){ return (b.createdAt||'').localeCompare(a.createdAt||''); });
+  if(_dashSort === 'oldest') sorted.sort(function(a,b){ return (a.createdAt||'').localeCompare(b.createdAt||''); });
+  if(_dashSort === 'type')   sorted.sort(function(a,b){ return (a.type||'').localeCompare(b.type||''); });
+
+  function sortBtn(key, label) {
+    var active = _dashSort === key;
+    return '<button onclick="dashSetSort(\'' + key + '\')" style="padding:4px 10px;font-size:11px;font-weight:700;border-radius:6px;border:1px solid ' + (active ? '#8b5cf6' : '#374151') + ';background:' + (active ? '#2e1065' : '#1f2937') + ';color:' + (active ? '#c4b5fd' : '#6b7280') + ';cursor:pointer">' + label + '</button>';
+  }
+  function callerBtn(val, label, color) {
+    var active = _dashCallerFilter === val;
+    return '<button onclick="dashSetCaller(\'' + val + '\')" style="padding:4px 10px;font-size:11px;font-weight:800;border-radius:6px;border:1px solid ' + (active ? color : '#374151') + ';background:' + (active ? color + '22' : '#1f2937') + ';color:' + (active ? color : '#6b7280') + ';cursor:pointer">' + label + '</button>';
+  }
+  var allTypes = Array.from(new Set(leads.map(function(l){return l.type||'';}))).filter(Boolean).sort();
+  var typeOpts = '<option value="">All Types</option>' + allTypes.map(function(t){return '<option value="'+e(t)+'"'+(t===_dashTypeFilter?' selected':'')+'>'+e(t)+'</option>';}).join('');
+
+  var controls =
+    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px">' +
+    '<span style="font-size:11px;font-weight:700;color:#4b5563;text-transform:uppercase;letter-spacing:.6px">Caller:</span>' +
+    callerBtn('','All','#8b5cf6') + callerBtn('aengus','Aengus','#a78bfa') + callerBtn('michael','Michael','#f59e0b') +
+    '<div class="nav-sep" style="height:18px"></div>' +
+    '<span style="font-size:11px;font-weight:700;color:#4b5563;text-transform:uppercase;letter-spacing:.6px">Sort:</span>' +
+    sortBtn('newest','Newest') + sortBtn('oldest','Oldest') + sortBtn('type','Type') +
+    '<div class="nav-sep" style="height:18px"></div>' +
+    '<span style="font-size:11px;font-weight:700;color:#4b5563;text-transform:uppercase;letter-spacing:.6px">Type:</span>' +
+    '<select onchange="dashSetType(this.value)" style="background:#1f2937;border:1px solid #374151;border-radius:6px;color:#e5e7eb;font-size:12px;padding:4px 8px">' + typeOpts + '</select>' +
+    '<span style="font-size:11px;color:#4b5563;margin-left:4px">' + filtered.length + ' of ' + leads.length + '</span>' +
+    '</div>';
+
+  // ── Cards ────────────────────────────────────────────────────────────────
+  // Quick-move status buttons (all statuses except current)
+  var cards = sorted.slice(0, 150).map(function(l) {
+    var callerOpts = CALLER_OPTIONS.map(function(c) {
+      return '<option value="' + e(c) + '"' + (c === l.caller ? ' selected' : '') + '>' + (c || '-- Caller --') + '</option>';
+    }).join('');
+    // Status move buttons: show all non-empty statuses except current
+    var moveBtns = DTA_STATUSES.filter(function(s){ return s && s !== (l.status||''); }).map(function(s) {
+      var cfg = STATUS_TABS.find(function(t){ return t.key === s; }) || {color:'#6b7280'};
+      return '<button onclick="changeLeadStatus(\'' + l.id + '\',\'' + s.replace(/'/g,"\\'") + '\')" ' +
+        'title="Move to ' + e(s) + '" style="padding:2px 7px;font-size:10px;font-weight:700;border-radius:4px;border:1px solid ' + cfg.color + '44;background:transparent;color:' + cfg.color + ';cursor:pointer;white-space:nowrap">' + e(s) + '</button>';
+    }).join('');
+
+    var callerClass = (l.caller||'').toLowerCase().indexOf('aengus') >= 0 ? 'caller-aengus' :
+                      (l.caller||'').toLowerCase().indexOf('michael') >= 0 ? 'caller-michael' :
+                      (l.caller||'').toLowerCase().indexOf('together') >= 0 ? 'caller-together' : '';
+    var nextCaller = !l.caller || l.caller === '' ? 'Aengus' : l.caller === 'Aengus' ? 'Michael' : l.caller === 'Michael' ? 'Together' : '';
+    var callerBtnLabel = l.caller ? e(l.caller) : '+ Caller';
+    var callerBtnColor = callerClass === 'caller-aengus' ? '#a78bfa' : callerClass === 'caller-michael' ? '#f59e0b' : callerClass === 'caller-together' ? '#10b981' : '#374151';
+    return '<div class="dash-lcard ' + callerClass + '">' +
+      '<div class="dash-lcard-main">' +
+        '<div onclick="openLead(\'' + l.id + '\')" style="cursor:pointer">' +
+          '<div class="dash-lcard-name">' + e(l.name) + '</div>' +
+          (l.address ? '<div class="dash-lcard-addr">📍 ' + e(l.address) + '</div>' : '') +
+          '<div class="dash-lcard-meta">' +
+            pill(l.status) +
+            (l.type ? '<span style="font-size:10px;color:#6b7280;font-weight:600">' + e(l.type) + '</span>' : '') +
+          '</div>' +
+        '</div>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">' + moveBtns + '</div>' +
+      '</div>' +
+      '<div class="dash-lcard-side">' +
+        '<button onclick="changeLeadCaller(\'' + l.id + '\',\'' + nextCaller + '\',null)" title="Tap to cycle caller" style="padding:3px 9px;font-size:11px;font-weight:800;border-radius:6px;border:1px solid ' + callerBtnColor + ';background:transparent;color:' + callerBtnColor + ';cursor:pointer;white-space:nowrap">' + callerBtnLabel + '</button>' +
+        (l.phone ? '<div class="dash-lcard-phone">' + e(l.phone) + '</div>' : '') +
+        '<div class="dash-lcard-created">' + fmtCreated(l.createdAt) + '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  document.getElementById('d2a-ct').textContent = leads.length + ' leads';
+  document.getElementById('d2a-tbl').innerHTML = tabBar + controls +
+    '<div class="dash-lead-grid">' + (cards || '<div style="padding:30px;text-align:center;color:#4b5563;font-size:13px">No leads in this bucket yet.</div>') + '</div>' +
+    (sorted.length > 150 ? '<div style="text-align:center;padding:7px;color:#4b5563;font-size:11px">Showing 150 of ' + sorted.length + '</div>' : '');
+}
+
+function dashSetSort(key)        { _dashSort = key; renderDashTable(); }
+function dashSetType(val)        { _dashTypeFilter = val; renderDashTable(); }
+function dashSetCaller(val)      { _dashCallerFilter = val; renderDashTable(); }
+function dashSetStatusTab(val)   { _dashStatusTab = val; renderDashTable(); }
+function dashSetSearch(val) {
+  _dashSearch = val;
+  renderDashTable();
+}
+
+async function loadDash() {
+  document.getElementById('dash-spin').style.display = 'block';
+  document.getElementById('dash-body').style.display = 'none';
+  try {
+    var leads = await fetchLeads();
+    var stats = {};
+    leads.forEach(function(l) { stats[l.status] = (stats[l.status] || 0) + 1; });
+    document.getElementById('dash-cards').innerHTML =
+      '<div class="card"><div class="lbl">Total Leads</div><div class="val">' + leads.length + '</div><div class="sub">Direct to Agent</div></div>' +
+      '<div class="card v"><div class="lbl">Voicemail</div><div class="val">' + (stats['Voicemail'] || 0) + '</div></div>' +
+      '<div class="card b"><div class="lbl">Calling Back</div><div class="val">' + (stats['Calling back'] || 0) + '</div></div>' +
+      '<div class="card o"><div class="lbl">Not Started</div><div class="val">' + ((stats[''] || 0) + (stats['Blank'] || 0)) + '</div></div>';
+    renderDashTable();
+    document.getElementById('dash-spin').style.display = 'none';
+    document.getElementById('dash-body').style.display = 'block';
+    // Background sync: pull partner's status changes from Monday updates (non-blocking)
+    setTimeout(syncUpdatesFromMonday, 1500);
+  } catch(err) {
+    document.getElementById('dash-spin').innerHTML = '<div class="al al-warn">Connection failed: ' + err.message + '. Add your Monday token in Settings.</div>';
+  }
+}
+
+// MAP
+function statusColor(s) {
+  var l = (s || '').toLowerCase();
+  if(l.indexOf('voicemail') >= 0) return '#a78bfa';
+  if(l.indexOf('calling') >= 0)   return '#38bdf8';
+  if(l.indexOf('accept') >= 0)    return '#10b981';
+  if(l.indexOf('decline') >= 0)   return '#f87171';
+  return '#6b7280';
+}
+
+async function loadMap() {
+  document.getElementById('map-spin').style.display = 'block';
+  document.getElementById('map-container').style.display = 'none';
+  try {
+    var leads = await fetchLeads();
+    document.getElementById('map-spin').style.display = 'none';
+    document.getElementById('map-container').style.display = 'block';
+    if(!G.map) {
+      G.map = L.map('map-container').setView([39.50, -98.35], 4);
+      // Esri satellite — free, no API key, fast CDN
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, DigitalGlobe, GeoEye, Earthstar Geographics',
+        maxZoom: 19
+      }).addTo(G.map);
+      // Road/label overlay so addresses are readable
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+        attribution: '', maxZoom: 19, opacity: 0.7
+      }).addTo(G.map);
+    }
+    G.markers.forEach(function(m) { m.remove(); });
+    G.markers = [];
+    leads.forEach(function(l) {
+      if(!l.lat || !l.lng) return;
+      var color = statusColor(l.status);
+      var icon = L.divIcon({
+        html: '<div style="width:11px;height:11px;border-radius:50%;background:' + color + ';border:2px solid #fff;box-shadow:0 0 5px ' + color + '66"></div>',
+        className: '', iconSize: [11, 11], iconAnchor: [5, 5]
+      });
+      var marker = L.marker([l.lat, l.lng], { icon: icon })
+        .addTo(G.map)
+        .bindPopup('<b>' + e(l.name) + '</b><br><small>' + e(l.address) + '</small><br><small>' + (e(l.status) || 'No status') + '</small>');
+      marker.on('click', (function(lid) { return function() { openLead(lid); }; })(l.id));
+      G.markers.push(marker);
+    });
+    setTimeout(function() { G.map.invalidateSize(); }, 100);
+  } catch(err) {
+    document.getElementById('map-spin').innerHTML = '<div class="al al-warn">Map failed: ' + err.message + '</div>';
+  }
+}
+
+// TINDER
+async function loadTinder() {
+  document.getElementById('tinder-spin').style.display = 'block';
+  document.getElementById('tinder-stage').innerHTML = '';
+  document.getElementById('tinder-done').style.display = 'none';
+  try {
+    var leads = await fetchLeads();
+    G.tinderQueue = leads.filter(function(l) { return !G.seenInTinder.has(l.id); });
+    G.tinderIdx = 0;
+    document.getElementById('tinder-spin').style.display = 'none';
+    renderTinderCard();
+  } catch(err) {
+    document.getElementById('tinder-spin').innerHTML = '<div class="al al-warn">Failed: ' + err.message + '</div>';
+  }
+}
+
+function renderTinderCard() {
+  var stage = document.getElementById('tinder-stage');
+  var countEl = document.getElementById('tinder-count');
+  var remaining = G.tinderQueue.length - G.tinderIdx;
+  countEl.textContent = remaining > 0 ? remaining + ' leads remaining' : '';
+  if(G.tinderIdx >= G.tinderQueue.length) {
+    stage.innerHTML = '';
+    document.getElementById('tinder-done').style.display = 'block';
+    return;
+  }
+  var lead = G.tinderQueue[G.tinderIdx];
+  var isHot = G.hotList.has(lead.id);
+  stage.innerHTML =
+    '<div class="tcard" id="tcard-current">' +
+    '<div class="tcard-hint" id="tcard-hint"></div>' +
+    (lead.fileUrl
+      ? '<div class="tcard-img" style="padding:0;background:#111827;position:relative"><img id="tcard-ss" src="" style="width:100%;height:200px;object-fit:contain;display:none;background:#111827"><div id="tcard-ss-ph" class="img-shimmer"></div></div>'
+      : '<div class="tcard-img" style="background:#111827"><div style="text-align:center;padding:20px;color:#374151"><div style="font-size:32px;margin-bottom:6px">🏠</div><div style="font-size:11px">No photo</div></div></div>'
+    ) +
+    '<div class="tcard-body">' +
+    '<div class="tcard-name">' + e(lead.name) + '</div>' +
+    '<div class="tcard-addr">' + (e(lead.address) || 'No address') + '</div>' +
+    '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">' + pill(lead.status) + (lead.type ? '<span class="pill p-ns">' + e(lead.type) + '</span>' : '') + (isHot ? '<span class="pill" style="background:#451a03;color:#f59e0b">Hot</span>' : '') + '</div>' +
+    '<div style="font-size:12px;color:#6b7280;margin-bottom:10px">' + (e(lead.phone) || 'No phone') + '</div>' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+    '<button class="btn btn-g btn-sm" onclick="openLead(\'' + lead.id + '\')" style="font-size:11px">View Detail</button>' +
+    (lead.address ? '<a href="' + fmtZillow(lead.address) + '" target="_blank" onclick="event.stopPropagation()" class="btn btn-sm" style="font-size:11px;background:#1e3a5f;color:#60a5fa;text-decoration:none">Zillow</a>' : '') +
+    '</div>' +
+    '</div></div>';
+  setupTinderDrag(document.getElementById('tcard-current'));
+  if(lead.fileUrl) loadMondayImage(lead.fileUrl, 'tcard-ss', 'tcard-ss-ph');
+}
+
+async function loadMondayImage(url, imgId, phId) {
+  try {
+    // Monday public_url is a signed S3 URL — load directly in img tag (no CORS issue for display)
+    var img = document.getElementById(imgId);
+    var ph  = document.getElementById(phId);
+    if(!img) return;
+    img.onload = function() { img.style.display = 'block'; if(ph) ph.style.display = 'none'; };
+    img.onerror = function() { if(ph) { ph.style.display = 'block'; ph.innerHTML = '<div style="font-size:28px">🏠</div><div style="font-size:10px;color:#6b7280">Photo unavailable</div>'; } };
+    img.src = url;
+  } catch(err) {
+    var ph = document.getElementById(phId);
+    if(ph) ph.innerHTML = '<div style="font-size:32px;margin-bottom:6px">🏠</div><div style="font-size:11px">No photo</div>';
+    console.warn('Image load failed:', err.message, '|', url ? url.slice(0,70) : 'no url');
+  }
+}
+
+function setupTinderDrag(card) {
+  var startX = 0, startY = 0, curX = 0, curY = 0;
+  var hint = document.getElementById('tcard-hint');
+
+  function onStart(x, y) { startX = x; startY = y; curX = 0; curY = 0; card.classList.add('dragging'); }
+  function onMove(x, y) {
+    curX = x - startX; curY = y - startY;
+    card.style.transform = 'translate(' + curX + 'px,' + curY + 'px) rotate(' + (curX * 0.05) + 'deg)';
+    hint.className = 'tcard-hint';
+    if(Math.abs(curX) > 40 || Math.abs(curY) > 40) {
+      if(curY < -60 && Math.abs(curX) < 60) { hint.textContent = 'HOT'; hint.classList.add('su'); }
+      else if(curX > 40) { hint.textContent = 'KEEP'; hint.classList.add('sr'); }
+      else if(curX < -40) { hint.textContent = 'SKIP'; hint.classList.add('sl'); }
+    }
+  }
+  function onEnd() {
+    card.classList.remove('dragging');
+    if(curY < -80 && Math.abs(curX) < 80) tinderSwipe('up');
+    else if(curX > 80) tinderSwipe('right');
+    else if(curX < -80) tinderSwipe('left');
+    else { card.style.transform = ''; hint.className = 'tcard-hint'; }
+  }
+
+  card.addEventListener('mousedown', function(ev) { ev.preventDefault(); onStart(ev.clientX, ev.clientY); });
+  document.addEventListener('mousemove', function(ev) { if(card.classList.contains('dragging')) onMove(ev.clientX, ev.clientY); });
+  document.addEventListener('mouseup', function() { if(card.classList.contains('dragging')) onEnd(); });
+  card.addEventListener('touchstart', function(ev) { var t = ev.touches[0]; onStart(t.clientX, t.clientY); }, { passive: true });
+  card.addEventListener('touchmove', function(ev) { var t = ev.touches[0]; onMove(t.clientX, t.clientY); }, { passive: true });
+  card.addEventListener('touchend', onEnd);
+}
+
+function tinderSwipe(dir) {
+  if(G.tinderIdx >= G.tinderQueue.length) return;
+  var lead = G.tinderQueue[G.tinderIdx];
+  var card = document.getElementById('tcard-current');
+  if(card) {
+    var tx = 0, ty = 0;
+    if(dir === 'left')  tx = -700;
+    if(dir === 'right') tx = 700;
+    if(dir === 'up')    ty = -700;
+    card.style.transition = 'transform .3s ease, opacity .3s';
+    card.style.transform = 'translate(' + tx + 'px,' + ty + 'px) rotate(' + (tx * 0.04) + 'deg)';
+    card.style.opacity = '0';
+  }
+  if(dir === 'up') {
+    G.hotList.add(lead.id);
+    localStorage.setItem('gonzo_hotlist', JSON.stringify(Array.from(G.hotList)));
+  }
+  if(dir === 'left') {
+    // Show delete popup — advance queue now, delete on confirm
+    G.seenInTinder.add(lead.id);
+    localStorage.setItem('gonzo_tinder_seen', JSON.stringify(Array.from(G.seenInTinder)));
+    G.tinderIdx++;
+    setTimeout(renderTinderCard, 280);
+    showDeletePopup(lead.id, lead.name, lead, function() {
+      return mq('mutation{delete_item(item_id:' + lead.id + '){id}}').then(function() {
+        G.leads = null;
+      }).catch(function(err) { console.error('Delete failed:', err); });
+    });
+    return; // skip the bottom seenInTinder/idx++ since we did it above
+  }
+  G.seenInTinder.add(lead.id);
+  localStorage.setItem('gonzo_tinder_seen', JSON.stringify(Array.from(G.seenInTinder)));
+  G.tinderIdx++;
+  setTimeout(renderTinderCard, 280);
+}
+
+function resetTinder() {
+  G.seenInTinder.clear();
+  localStorage.setItem('gonzo_tinder_seen', '[]');
+  G.tinderIdx = 0;
+  document.getElementById('tinder-done').style.display = 'none';
+  loadTinder();
+}
+
+document.addEventListener('keydown', function(ev) {
+  var pg = document.getElementById('pg-tinder');
+  if(!pg.classList.contains('on')) return;
+  if(!document.getElementById('tcard-current')) return;
+  if(ev.key === 'ArrowLeft')  { ev.preventDefault(); tinderSwipe('left'); }
+  if(ev.key === 'ArrowRight') { ev.preventDefault(); tinderSwipe('right'); }
+  if(ev.key === 'ArrowUp')    { ev.preventDefault(); tinderSwipe('up'); }
+});
+
+// HOT LIST
+var _hotSearch = '';
+function hotSetSearch(val) {
+  _hotSearch = val;
+  renderHotList();
+  var inp = document.getElementById('hot-search-input');
+  if(inp) { var pos = inp.value.length; inp.setSelectionRange(pos, pos); }
+}
+async function renderHotList() {
+  var grid = document.getElementById('hot-grid');
+  var empty = document.getElementById('hot-empty');
+  var ct = document.getElementById('hot-ct');
+  ct.textContent = G.hotList.size;
+  if(G.hotList.size === 0) { empty.style.display = 'block'; grid.innerHTML = ''; return; }
+  empty.style.display = 'none';
+  var leads = G.leads || await fetchLeads().catch(function() { return []; });
+  var hotLeads = leads.filter(function(l) { return G.hotList.has(l.id); });
+  if(_hotSearch) {
+    var q = _hotSearch.toLowerCase();
+    hotLeads = hotLeads.filter(function(l) {
+      return (l.name||'').toLowerCase().indexOf(q) >= 0 ||
+             (l.address||'').toLowerCase().indexOf(q) >= 0 ||
+             (l.phone||'').toLowerCase().indexOf(q) >= 0;
+    });
+  }
+  var searchBar = '<div style="margin-bottom:12px"><input id="hot-search-input" type="text" placeholder="🔍  Search hot leads…" value="' + e(_hotSearch) + '" oninput="hotSetSearch(this.value)" style="width:100%;box-sizing:border-box;background:#1f2937;border:1px solid #374151;border-radius:8px;color:#e5e7eb;font-size:13px;padding:8px 12px;outline:none"></div>';
+  grid.innerHTML = searchBar + '<div style="display:flex;flex-wrap:wrap;gap:12px">' + hotLeads.map(function(l) {
+    var photoId = 'hc-img-' + l.id;
+    var phId    = 'hc-ph-' + l.id;
+    return '<div class="hot-card" onclick="openLead(\'' + l.id + '\')">' +
+      '<div class="hc-photo">' +
+        (l.fileUrl
+          ? '<img id="' + photoId + '" src="" style="display:none;width:100%;height:110px;object-fit:contain;background:#111827">' +
+            '<div id="' + phId + '" style="text-align:center;color:#374151;font-size:11px">Loading...</div>'
+          : '<div style="font-size:28px">🏠</div>'
+        ) +
+      '</div>' +
+      '<div class="hc-info">' +
+        '<div class="hc-name">' + e(l.name) + '</div>' +
+        '<div class="hc-addr">' + (e(l.address) || 'No address') + '</div>' +
+        '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">' + pill(l.status) + (l.type ? '<span class="pill p-ns" style="font-size:10px">' + e(l.type) + '</span>' : '') + '</div>' +
+      '</div>' +
+      '</div>';
+  }).join('') + '</div>';
+  // Load photos async
+  hotLeads.forEach(function(l) {
+    if(l.fileUrl) loadMondayImage(l.fileUrl, 'hc-img-' + l.id, 'hc-ph-' + l.id);
+  });
+}
+
+// WAR BOARD
+function getWarCalls() {
+  var raw = localStorage.getItem('gonzo_warcalls');
+  return raw ? JSON.parse(raw) : { aengus: 0, michael: 0 };
+}
+function saveWarCalls(obj) { localStorage.setItem('gonzo_warcalls', JSON.stringify(obj)); }
+
+function renderWarBoard() {
+  var counts = getWarCalls();
+  var aWins = counts.aengus >= counts.michael;
+  var grid = document.getElementById('war-grid');
+  grid.innerHTML =
+    '<div class="war-card ' + (aWins && counts.aengus > 0 ? 'leader' : '') + '">' +
+    '<div class="war-name">Aengus</div>' +
+    '<div class="war-count" style="color:' + (aWins && counts.aengus > 0 ? '#f59e0b' : '#fff') + '">' + counts.aengus + '</div>' +
+    '<div class="war-sub">calls logged</div></div>' +
+    '<div class="war-card ' + (!aWins && counts.michael > 0 ? 'leader' : '') + '">' +
+    '<div class="war-name">Michael</div>' +
+    '<div class="war-count" style="color:' + (!aWins && counts.michael > 0 ? '#f59e0b' : '#fff') + '">' + counts.michael + '</div>' +
+    '<div class="war-sub">calls logged</div></div>';
+  var log = JSON.parse(localStorage.getItem('gonzo_calllog') || '[]');
+  document.getElementById('war-log').innerHTML = log.length
+    ? log.slice().reverse().slice(0, 20).map(function(en) {
+        return '<div style="padding:4px 0;border-bottom:1px solid #1f2937;font-size:11px">Call: ' + e(en.caller) + ' called ' + e(en.name) + ' <span style="color:#4b5563">' + en.ts + '</span></div>';
+      }).join('')
+    : '<div style="color:#4b5563">No calls logged yet.</div>';
+}
+
+async function syncWarBoard() {
+  var msg = document.getElementById('war-sync-msg');
+  msg.textContent = 'Syncing...';
+  try {
+    var d = await mq('query{boards(ids:["' + BOARD_DTA + '"]){items_page(limit:200){items{id name updates(limit:100){text_body created_at}}}}}');
+    var items = (d && d.data && d.data.boards && d.data.boards[0] && d.data.boards[0].items_page && d.data.boards[0].items_page.items) ? d.data.boards[0].items_page.items : [];
+    var aCount = 0, mCount = 0;
+    items.forEach(function(item) {
+      (item.updates || []).forEach(function(u) {
+        var b = u.text_body || '';
+        if(b.indexOf('Called by') < 0) return;
+        if(b.toLowerCase().indexOf('aengus') >= 0) aCount++;
+        if(b.toLowerCase().indexOf('michael') >= 0) mCount++;
+      });
+    });
+    saveWarCalls({ aengus: aCount, michael: mCount });
+    renderWarBoard();
+    msg.textContent = 'Synced at ' + new Date().toLocaleTimeString() + ' -- ' + (aCount + mCount) + ' total calls';
+  } catch(err) {
+    msg.textContent = 'Sync failed: ' + err.message;
+  }
+}
+
+// STATUS/DATE UPDATE HELPERS
+var DTA_STATUSES = ['','Voicemail','Calling back','Not interested','Follow Up','Do Not Call','Wrong Number','Offer Sent'];
+var CALLER_OPTIONS = ['','Aengus','Michael'];
+var OFF_STATUSES = ['Pending','Offer Sent','Accepted','Declined','Counter Offer','In Review'];
+var FU_STATUSES  = ['Not Started','Calling Back','Voicemail','Follow Up','Pending','Accepted','Declined'];
+
+function reminderBadge(dateStr) {
+  if(!dateStr) return '';
+  // dateStr from Monday is usually "YYYY-MM-DD" or "Month DD, YYYY"
+  var d = new Date(dateStr); var today = new Date(); today.setHours(0,0,0,0);
+  if(isNaN(d.getTime())) return '<span class="reminder-badge">' + e(dateStr) + '</span>';
+  d.setHours(0,0,0,0);
+  var diff = Math.round((d - today) / 86400000);
+  var label = d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  if(diff < 0) return '<span class="reminder-badge overdue">Overdue: ' + label + '</span>';
+  if(diff === 0) return '<span class="reminder-badge today">Today</span>';
+  if(diff === 1) return '<span class="reminder-badge today">Tomorrow</span>';
+  return '<span class="reminder-badge">' + label + '</span>';
+}
+
+function toISODate(str) {
+  if(!str) return '';
+  var d = new Date(str);
+  if(isNaN(d.getTime())) return '';
+  return d.toISOString().slice(0,10);
+}
+
+// updateMonStatus / updateDashCaller replaced by changeLeadStatus / changeLeadCaller above
+
+async function updateMonDate(boardId, itemId, colId, dateVal, inputEl) {
+  try {
+    inputEl.disabled = true;
+    // Monday date column expects {"date": "YYYY-MM-DD"}
+    var val = dateVal ? JSON.stringify({date: dateVal}) : '""';
+    await mq('mutation($b:ID!,$i:ID!,$c:String!,$v:String!){change_column_value(board_id:$b,item_id:$i,column_id:$c,value:$v){id}}',
+      {b: boardId, i: itemId, c: colId, v: val});
+    showBanner('Reminder set for ' + dateVal, 'ok');
+  } catch(err) {
+    showBanner('Date update failed: ' + err.message, 'warn');
+  } finally {
+    inputEl.disabled = false;
+  }
+}
+
+function renderBoardRows(items, boardId, statusColId, dateColId, addrColId, statuses, extraColFn) {
+  return items.map(function(i) {
+    var c = {}; i.column_values.forEach(function(v) { c[v.id] = v.text || ''; });
+    var status = c[statusColId] || '';
+    var addr   = c[addrColId] || '';
+    var dateVal= c[dateColId] || '';
+    var isoDate = toISODate(dateVal);
+    var uid = 'br-' + i.id;
+    var selOpts = statuses.map(function(s) {
+      return '<option value="' + e(s) + '"' + (s === status ? ' selected' : '') + '>' + e(s) + '</option>';
+    }).join('');
+    var extra = extraColFn ? extraColFn(c) : '';
+    return '<div class="brow" onclick="openLead(\'' + i.id + '\')">' +
+      '<div class="brow-main">' +
+        '<div class="brow-name">' + e(i.name) + '</div>' +
+        (addr ? '<div class="brow-addr">' + e(addr) + '</div>' : '') +
+        '<div class="brow-meta">' +
+          extra +
+        '</div>' +
+      '</div>' +
+      '<div class="brow-side" onclick="event.stopPropagation()">' +
+        '<select class="status-sel" onchange="updateMonStatus(\'' + boardId + '\',\'' + i.id + '\',\'' + statusColId + '\',this.value,this)">' + selOpts + '</select>' +
+        '<div class="date-row">🔔<input type="date" value="' + isoDate + '" title="Set reminder" onchange="updateMonDate(\'' + boardId + '\',\'' + i.id + '\',\'' + dateColId + '\',this.value,this)"></div>' +
+        (dateVal ? reminderBadge(dateVal) : '') +
+      '</div>' +
+      '</div>';
+  }).join('');
+}
+
+// OFFERS
+async function loadOffers() {
+  document.getElementById('off-spin').style.display = 'block';
+  document.getElementById('off-body').style.display = 'none';
+  try {
+    var d = await mq('query{boards(ids:["' + BOARD_OFF + '"]){items_page(limit:100){items{id name column_values(ids:["color_mm2hnjc0","location_mm2hjpeq","color_mm2hhxae","date_mm2hpxad"]){id text}}}}}');
+    var items = (d && d.data && d.data.boards && d.data.boards[0] && d.data.boards[0].items_page && d.data.boards[0].items_page.items) ? d.data.boards[0].items_page.items : [];
+    var acc=0, sent=0, pend=0, dec=0;
+    items.forEach(function(i) {
+      var c = {}; i.column_values.forEach(function(v) { c[v.id] = v.text || ''; });
+      var s = (c.color_mm2hnjc0 || '').toLowerCase();
+      if(s.indexOf('accept') >= 0) acc++;
+      else if(s.indexOf('sent') >= 0) sent++;
+      else if(s.indexOf('pending') >= 0) pend++;
+      else if(s.indexOf('declin') >= 0) dec++;
+    });
+    document.getElementById('off-cards').innerHTML =
+      '<div class="card g"><div class="lbl">Accepted</div><div class="val">' + acc + '</div></div>' +
+      '<div class="card b"><div class="lbl">Sent Awaiting</div><div class="val">' + sent + '</div></div>' +
+      '<div class="card o"><div class="lbl">Pending</div><div class="val">' + pend + '</div></div>' +
+      '<div class="card r"><div class="lbl">Declined</div><div class="val">' + dec + '</div></div>';
+    document.getElementById('off-ct').textContent = items.length + ' offers';
+    var rows = renderBoardRows(items, BOARD_OFF, 'color_mm2hnjc0', 'date_mm2hpxad', 'location_mm2hjpeq', OFF_STATUSES,
+      function(c) { return callerBadge(c.color_mm2hhxae); });
+    // DTA leads tagged Offer Sent
+    var dtaSent = (G.leads || []).filter(function(l){ return l.status === 'Offer Sent'; });
+    var dtaSection = dtaSent.length ? (
+      '<div style="margin-bottom:16px"><div style="font-size:11px;font-weight:700;color:#10b981;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">📋 From DTA Pipeline</div>' +
+      '<div class="dash-lead-grid">' + dtaSent.map(function(l){
+        return '<div class="dash-lcard" onclick="openLead(\'' + l.id + '\')">' +
+          '<div class="dash-lcard-main">' +
+            '<div class="dash-lcard-name">' + e(l.name) + '</div>' +
+            (l.address ? '<div class="dash-lcard-addr">📍 ' + e(l.address) + '</div>' : '') +
+            '<div class="dash-lcard-meta">' + pill(l.status) + callerBadge(l.caller) + '</div>' +
+          '</div>' +
+          '<div class="dash-lcard-side" onclick="event.stopPropagation()">' +
+            (l.phone ? '<div class="dash-lcard-phone">' + e(l.phone) + '</div>' : '') +
+            '<button onclick="event.stopPropagation();changeLeadStatus(\'' + l.id + '\',\'Calling back\')" style="margin-top:4px;padding:2px 8px;font-size:10px;font-weight:700;border-radius:4px;border:1px solid #38bdf844;background:transparent;color:#38bdf8;cursor:pointer">↩ Back to Pipeline</button>' +
+          '</div>' +
+        '</div>';
+      }).join('') + '</div></div>') : '';
+    document.getElementById('off-tbl').innerHTML = dtaSection + (rows || '<div class="al al-info">No formal offers yet.</div>');
+    document.getElementById('off-spin').style.display = 'none';
+    document.getElementById('off-body').style.display = 'block';
+  } catch(err) { document.getElementById('off-spin').innerHTML = '<div class="al al-warn">Failed: ' + err.message + '</div>'; }
+}
+
+// FOLLOW-UPS
+async function loadFU() {
+  document.getElementById('fu-spin').style.display = 'block';
+  document.getElementById('fu-body').style.display = 'none';
+  try {
+    var d = await mq('query{boards(ids:["' + BOARD_FU + '"]){items_page(limit:100){items{id name column_values(ids:["color_mm2hvbn6","date_mm2hhctp","location_mm2k91pt"]){id text}}}}}');
+    var items = (d && d.data && d.data.boards && d.data.boards[0] && d.data.boards[0].items_page && d.data.boards[0].items_page.items) ? d.data.boards[0].items_page.items : [];
+    document.getElementById('fu-ct').textContent = items.length + ' items';
+    var rows = renderBoardRows(items, BOARD_FU, 'color_mm2hvbn6', 'date_mm2hhctp', 'location_mm2k91pt', FU_STATUSES, null);
+    document.getElementById('fu-tbl').innerHTML = rows || '<div class="al al-info">No follow-ups yet.</div>';
+    document.getElementById('fu-spin').style.display = 'none';
+    document.getElementById('fu-body').style.display = 'block';
+  } catch(err) { document.getElementById('fu-spin').innerHTML = '<div class="al al-warn">Failed: ' + err.message + '</div>'; }
+}
+
+// LEAD DETAIL
+async function openLead(itemId) {
+  document.getElementById('ld-modal').style.display = 'flex';
+  document.getElementById('ld-title').textContent = 'Loading...';
+  ldTab('info');
+  stopChatPolling();
+
+  var lead = G.leads ? G.leads.filter(function(l) { return l.id === itemId; })[0] : null;
+  if(!lead) {
+    var d = await mq('query{items(ids:[' + itemId + ']){id name column_values(ids:["location","lead_status","color_mkr63b1e","color_mm2d2tdx","lead_phone","text_mm03pxpa","link_mm2htak3"]){id text value}}}');
+    var raw = d && d.data && d.data.items && d.data.items[0];
+    if(!raw) { document.getElementById('ld-title').textContent = 'Not found'; return; }
+    var c = {};
+    raw.column_values.forEach(function(cv) { c[cv.id] = { text: cv.text || '', value: cv.value || '' }; });
+    var _rawAddr = c.location ? c.location.text : '';
+    if(!_rawAddr && c.link_mm2htak3) { var _zt = c.link_mm2htak3.text || ''; if(_zt && _zt !== 'View on Zillow' && /^\d/.test(_zt)) _rawAddr = _zt; }
+    lead = { id: raw.id, name: raw.name, address: _rawAddr, status: c.lead_status ? c.lead_status.text : '', type: c.color_mkr63b1e ? c.color_mkr63b1e.text : '', caller: c.color_mm2d2tdx ? c.color_mm2d2tdx.text : '', phone: c.lead_phone ? c.lead_phone.text : '', notes: c.text_mm03pxpa ? c.text_mm03pxpa.text : '', zillow: c.link_mm2htak3 ? c.link_mm2htak3.text : '' };
+  }
+  G.activeLead = lead;
+  document.getElementById('ld-title').textContent = lead.name || 'Lead Detail';
+  renderLeadInfo(lead);
+  renderCallTab(lead);
+  document.getElementById('ld-comps-body').innerHTML = '<div style="text-align:center;padding:16px"><button class="btn btn-p" onclick="loadComps()">Pull Auto Comps</button></div>';
+  // Photo tab
+  var photoEl = document.getElementById('ld-photo-body');
+  if(lead.fileUrl) {
+    photoEl.innerHTML = '<img id="ld-photo-img" src="" style="max-width:100%;border-radius:8px;border:1px solid #1f2937" onerror="this.style.display=\'none\';document.getElementById(\'ld-photo-err\').style.display=\'block\'">' +
+      '<div id="ld-photo-err" style="display:none;color:#6b7280;font-size:13px;padding:20px">Could not load photo.</div>';
+    loadMondayImage(lead.fileUrl, 'ld-photo-img', null);
+  } else {
+    photoEl.innerHTML = '<div style="color:#4b5563;font-size:13px;padding:30px">No photo uploaded for this lead.</div>';
+  }
+  startChatPolling(lead.id);
+}
+
+function closeLead() {
+  document.getElementById('ld-modal').style.display = 'none';
+  stopCallTimer();
+  stopChatPolling();
+  G.activeLead = null;
+}
+
+function ldTab(name) {
+  document.querySelectorAll('.ld-tab').forEach(function(t) { t.classList.remove('on'); });
+  document.querySelectorAll('.ld-panel').forEach(function(p) { p.classList.remove('on'); });
+  document.getElementById('ld-' + name).classList.add('on');
+  var tabs = document.querySelectorAll('.ld-tab');
+  var names = ['info', 'photo', 'comps', 'call', 'chat'];
+  var idx = names.indexOf(name);
+  if(idx >= 0 && tabs[idx]) tabs[idx].classList.add('on');
+}
+
+function renderLeadInfo(lead) {
+  var isHot = G.hotList.has(lead.id);
+  document.getElementById('ld-info-body').innerHTML =
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">' +
+    '<div>' +
+    '<div class="fg"><label>Agent Name</label><div style="color:#e5e7eb;font-size:14px;font-weight:600">' + (e(lead.name) || '--') + '</div></div>' +
+    '<div class="fg"><label>Address</label><div style="color:#e5e7eb;font-size:13px">' + (e(lead.address) || '--') + '</div></div>' +
+    '<div class="fg"><label>Phone</label><div style="color:#e5e7eb;font-size:13px">' + (e(lead.phone) || '--') + '</div></div>' +
+    '</div>' +
+    '<div>' +
+    '<div class="fg"><label>Status</label><div>' + pill(lead.status) + '</div></div>' +
+    '<div class="fg"><label>Type</label><div style="color:#e5e7eb;font-size:13px">' + (e(lead.type) || '--') + '</div></div>' +
+    '<div class="fg"><label>Caller</label><div>' + callerBadge(lead.caller) + '</div></div>' +
+    '</div></div>' +
+    (lead.notes ? '<div class="fg"><label>Notes</label><div style="color:#9ca3af;font-size:12px;background:#1f2937;border-radius:6px;padding:8px 10px">' + e(lead.notes) + '</div></div>' : '') +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">' +
+    '<a href="' + fmtZillow(lead.address) + '" target="_blank" class="btn btn-g btn-sm">Zillow</a>' +
+    '<button class="btn btn-sm ' + (isHot ? 'btn-warn' : 'btn-g') + '" onclick="toggleHot(\'' + lead.id + '\',this)">' + (isHot ? 'Remove from Hot List' : 'Add to Hot List') + '</button>' +
+    '<button class="btn btn-sm" style="background:#7f1d1d;color:#fca5a5;border:none" onclick="deleteLead(\'' + lead.id + '\',\'' + e(lead.name) + '\')">Delete</button>' +
+    '</div>';
+}
+
+function fmtZillow(address) {
+  // Route through Google search → user clicks Zillow result naturally → bypasses Zillow bot check
+  return 'https://www.google.com/search?q=' + encodeURIComponent((address || '') + ' zillow');
+}
+
+function deleteLead(itemId, name) {
+  var lead = G.activeLead || (G.leads ? G.leads.find(function(l){return l.id===itemId;}) : null);
+  showDeletePopup(itemId, name, lead, async function() {
+    try {
+      await mq('mutation{delete_item(item_id:' + itemId + '){id}}');
+      G.leads = null;
+      document.getElementById('ld-modal').style.display = 'none';
+      showBanner('Lead deleted and sent to Graveyard.', 'ok');
+      if(document.getElementById('pg-dashboard').classList.contains('on')) loadDash();
+    } catch(err) {
+      showBanner('Delete failed: ' + err.message, 'warn');
+    }
+  });
+}
+
+function toggleHot(itemId, btn) {
+  if(G.hotList.has(itemId)) {
+    G.hotList.delete(itemId);
+    btn.textContent = 'Add to Hot List'; btn.className = 'btn btn-sm btn-g';
+  } else {
+    G.hotList.add(itemId);
+    btn.textContent = 'Remove from Hot List'; btn.className = 'btn btn-sm btn-warn';
+  }
+  localStorage.setItem('gonzo_hotlist', JSON.stringify(Array.from(G.hotList)));
+}
+
+// AUTO COMPS
+async function loadComps() {
+  var lead = G.activeLead;
+  if(!lead || !lead.address) { document.getElementById('ld-comps-body').innerHTML = '<div class="al al-warn">No address on this lead.</div>'; return; }
+  document.getElementById('ld-comps-body').innerHTML = '<div class="spin-wrap"><span class="sp"></span>Pulling comps...</div>';
+  try {
+    var r = await fetch(SERVER + '/comps', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ address: lead.address })
+    });
+    if(!r.ok) throw new Error(await r.text());
+    var data = await r.json();
+    var comps = data.comps || [];
+    var rfLink = 'https://www.redfin.com/search#' + encodeURIComponent(lead.address);
+    var zillowLink = fmtZillow(lead.address);
+    var deepLinks = '<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">' +
+      '<a href="' + rfLink + '" target="_blank" class="btn btn-g btn-sm" style="text-decoration:none">Open Redfin ↗</a>' +
+      '<a href="' + zillowLink + '" target="_blank" class="btn btn-g btn-sm" style="text-decoration:none">Open Zillow ↗</a>' +
+      '</div>';
+    if(!comps.length) {
+      document.getElementById('ld-comps-body').innerHTML =
+        '<div class="al al-warn" style="margin-bottom:10px">No comps found from Redfin, Realtor.com, or RentCast. Pull manually:</div>' + deepLinks;
+      return;
+    }
+    var sources = [...new Set(comps.map(function(c) { return c.source || 'Redfin'; }))].join(' + ');
+    var avg = comps.reduce(function(s, c) { return s + (c.price || 0); }, 0) / comps.length;
+    document.getElementById('ld-comps-body').innerHTML =
+      '<div style="margin-bottom:10px;display:flex;gap:10px;align-items:center">' +
+      '<div><div style="font-size:10px;color:#4b5563;text-transform:uppercase;letter-spacing:.6px">Avg Comp</div><div style="font-size:22px;font-weight:700;color:#10b981">' + fmt$(Math.round(avg)) + '</div></div>' +
+      '<div style="font-size:11px;color:#4b5563">' + comps.length + ' comps &middot; ' + e(sources) + '</div></div>' +
+      comps.map(function(c) {
+        var srcBadge = (c.source && c.source !== 'Redfin') ? '<span style="font-size:9px;background:#dbeafe;color:#1e40af;padding:1px 5px;border-radius:4px;margin-left:5px">' + e(c.source) + '</span>' : '';
+        var addrHtml = c.url
+          ? '<a href="' + e(c.url) + '" target="_blank" style="color:inherit;text-decoration:none;border-bottom:1px dotted #9ca3af">' + e(c.address || lead.address) + '</a>'
+          : e(c.address || lead.address);
+        return '<div class="comp-card"><div class="comp-addr">' + addrHtml + srcBadge + '</div>' +
+          '<div class="comp-meta">' + (c.beds || '?') + ' bd / ' + (c.baths || '?') + ' ba &bull; ' + (c.sqft ? c.sqft.toLocaleString() + ' sqft' : '? sqft') + ' &bull; ' + (c.sold || c.soldDate || 'Recent') + '</div>' +
+          '<div class="comp-price">' + fmt$(c.price) + '</div>' +
+          '</div>';
+      }).join('') + deepLinks;
+  } catch(err) {
+    document.getElementById('ld-comps-body').innerHTML = '<div class="al al-warn">Comps failed: ' + err.message + '. Make sure gonzo_server.py is running.</div>';
+  }
+}
+
+// LIVE CALL MODE
+function renderCallTab(lead) {
+  var savedNotes = localStorage.getItem('gonzo_calls_' + lead.id) || '';
+  document.getElementById('ld-call-body').innerHTML =
+    '<div id="call-idle">' +
+    '<div class="al al-info" style="margin-bottom:12px">Notes stay private on your device. Ending the call posts a ping to Monday.</div>' +
+    '<button class="btn btn-p" onclick="startCall(\'' + lead.id + '\')" style="font-size:13px;padding:11px 24px">Start Call</button>' +
+    '</div>' +
+    '<div id="call-active" style="display:none">' +
+    '<div style="text-align:center;margin-bottom:10px"><span class="call-pulse"></span><span style="font-size:12px;font-weight:700;color:#10b981;text-transform:uppercase;letter-spacing:.6px">Live Call</span></div>' +
+    '<div class="call-timer" id="call-timer">0:00</div>' +
+    '<div class="fg" style="margin-top:14px"><label>Private Notes (device only)</label>' +
+    '<textarea id="call-notes" rows="5" style="resize:vertical" placeholder="What did they say? Offer details, objections, next steps...">' + e(savedNotes) + '</textarea></div>' +
+    '<div style="display:flex;gap:8px;margin-top:4px">' +
+    '<button class="btn btn-ok" onclick="endCall(\'' + lead.id + '\')" style="flex:1">End and Save to Monday</button>' +
+    '<button class="btn btn-g btn-sm" onclick="cancelCall()">Cancel</button>' +
+    '</div></div>';
+}
+
+function startCall(itemId) {
+  document.getElementById('call-idle').style.display = 'none';
+  document.getElementById('call-active').style.display = 'block';
+  G.callActive = true;
+  G.callStart = Date.now();
+  G.callTimerInterval = setInterval(function() {
+    var s = Math.floor((Date.now() - G.callStart) / 1000);
+    var m = Math.floor(s / 60);
+    var el = document.getElementById('call-timer');
+    if(el) el.textContent = m + ':' + String(s % 60).padStart(2, '0');
+  }, 1000);
+}
+
+function stopCallTimer() {
+  if(G.callTimerInterval) { clearInterval(G.callTimerInterval); G.callTimerInterval = null; }
+  G.callActive = false;
+}
+
+function cancelCall() {
+  stopCallTimer();
+  var idle = document.getElementById('call-idle');
+  var active = document.getElementById('call-active');
+  if(idle) idle.style.display = 'block';
+  if(active) active.style.display = 'none';
+}
+
+async function endCall(itemId) {
+  var notesEl = document.getElementById('call-notes');
+  var notes = notesEl ? notesEl.value : '';
+  var dur = G.callStart ? Math.floor((Date.now() - G.callStart) / 1000) : 0;
+  var m = Math.floor(dur / 60), s = dur % 60;
+  var durStr = m + ':' + String(s).padStart(2, '0');
+  stopCallTimer();
+  if(notes.trim()) localStorage.setItem('gonzo_calls_' + itemId, notes);
+  var callerName = getAgentName();
+  var body = 'Called by ' + callerName + ' -- ' + durStr + (notes.trim() ? '\n' + notes.trim() : '');
+  try {
+    await mq('mutation($id:ID!,$body:String!){create_update(item_id:$id,body:$body){id}}', { id: itemId, body: body });
+  } catch(err) { console.error('Monday update failed:', err); }
+  var log = JSON.parse(localStorage.getItem('gonzo_calllog') || '[]');
+  var lead = G.activeLead;
+  log.push({ caller: callerName, name: lead ? lead.name : itemId, ts: new Date().toLocaleTimeString(), dur: durStr });
+  if(log.length > 50) log.splice(0, log.length - 50);
+  localStorage.setItem('gonzo_calllog', JSON.stringify(log));
+  var wc = getWarCalls();
+  var key = getCaller();
+  wc[key] = (wc[key] || 0) + 1;
+  saveWarCalls(wc);
+  cancelCall();
+  var idle = document.getElementById('call-idle');
+  if(idle) idle.innerHTML = '<div class="al al-ok">Call logged! Ping posted to Monday.</div>';
+}
+
+// DEAL CHAT
+async function loadChat(itemId) {
+  try {
+    var d = await mq('query{items(ids:[' + itemId + ']){updates(limit:50){id text_body creator{name} created_at}}}');
+    var updates = (d && d.data && d.data.items && d.data.items[0] && d.data.items[0].updates) ? d.data.items[0].updates : [];
+    var chat = updates.filter(function(u) { return u.text_body.indexOf('Called by') < 0; });
+    var myName = getAgentName().toLowerCase();
+    var container = document.getElementById('ld-chat-msgs');
+    if(!container) return;
+    if(!chat.length) { container.innerHTML = '<div style="text-align:center;padding:18px;color:#4b5563;font-size:12px">No messages yet.</div>'; return; }
+    container.innerHTML = chat.reverse().map(function(u) {
+      var isMine = u.creator && u.creator.name && u.creator.name.toLowerCase().indexOf(myName) >= 0;
+      var ts = new Date(u.created_at).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
+      return '<div class="chat-msg ' + (isMine ? 'chat-mine' : 'chat-other') + '">' +
+        '<div><strong>' + e((u.creator && u.creator.name) || '?') + '</strong>: ' + e(u.text_body) + '</div>' +
+        '<div class="chat-ts">' + ts + '</div></div>';
+    }).join('');
+    container.scrollTop = container.scrollHeight;
+  } catch(err) { console.error('Chat load failed:', err); }
+}
+
+function startChatPolling(itemId) {
+  G.chatItemId = itemId;
+  loadChat(itemId);
+  G.chatInterval = setInterval(function() { if(G.chatItemId) loadChat(G.chatItemId); }, 25000);
+}
+
+function stopChatPolling() {
+  if(G.chatInterval) { clearInterval(G.chatInterval); G.chatInterval = null; }
+  G.chatItemId = null;
+}
+
+async function sendChat() {
+  var input = document.getElementById('chat-input');
+  var text = input ? input.value.trim() : '';
+  if(!text || !G.chatItemId) return;
+  input.value = '';
+  try {
+    await mq('mutation($id:ID!,$body:String!){create_update(item_id:$id,body:$body){id}}', { id: G.chatItemId, body: text });
+    loadChat(G.chatItemId);
+  } catch(err) { console.error('Send chat failed:', err); }
+}
+
+// MIRROR MODE
+function copyMirrorLink() {
+  var lead = G.activeLead;
+  if(!lead) return;
+  var url = window.location.origin + window.location.pathname + '#mirror=' + lead.id;
+  navigator.clipboard.writeText(url).then(function() {
+    alert('Mirror link copied! Send to Michael.');
+  }).catch(function() {
+    prompt('Copy this link:', url);
+  });
+}
+
+function checkMirrorMode() {
+  var hash = window.location.hash;
+  var match = hash.match(/^#mirror=(\d+)$/);
+  if(!match) return;
+  G.mirrorMode = true;
+  document.getElementById('mirror-banner').style.display = 'block';
+  document.getElementById('main-nav').style.display = 'none';
+  document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('on'); });
+  document.getElementById('pg-dashboard').classList.add('on');
+  document.getElementById('dash-body').innerHTML = '<div class="spin-wrap"><span class="sp"></span>Loading lead...</div>';
+  document.getElementById('dash-spin').style.display = 'none';
+  document.getElementById('dash-body').style.display = 'block';
+  setTimeout(function() {
+    openLead(match[1]).then(function() {
+      // Hide call/chat tabs in mirror mode
+      var tabs = document.querySelectorAll('.ld-tab');
+      tabs.forEach(function(t) {
+        if(t.textContent === 'Call' || t.textContent === 'Chat') t.style.display = 'none';
+      });
+      document.getElementById('ld-mirror-btn').style.display = 'none';
+    });
+  }, 600);
+}
+
+// IMPORT
+var txtFiles = [], imgFiles = [], parsedLeads = [];
+
+['dz-txt','dz-img'].forEach(function(id) {
+  var z = document.getElementById(id);
+  var type = id === 'dz-txt' ? 'txt' : 'img';
+  z.addEventListener('dragover', function(ev) { ev.preventDefault(); z.classList.add('ov'); });
+  z.addEventListener('dragleave', function() { z.classList.remove('ov'); });
+  z.addEventListener('drop', function(ev) {
+    ev.preventDefault(); z.classList.remove('ov');
+    if(type === 'txt') stageTxt(ev.dataTransfer.files);
+    else stageImg(ev.dataTransfer.files);
+  });
+});
+
+function stageTxt(files) { for(var i=0;i<files.length;i++) txtFiles.push(files[i]); updateStageMsg(); }
+function stageImg(files) { for(var i=0;i<files.length;i++) imgFiles.push(files[i]); updateStageMsg(); }
+function updateStageMsg() {
+  var el = document.getElementById('staged-msg');
+  var pw = document.getElementById('parse-wrap');
+  if(txtFiles.length || imgFiles.length) {
+    el.style.display = 'block';
+    el.textContent = txtFiles.length + ' text file(s)  --  ' + imgFiles.length + ' screenshot(s) staged';
+    pw.style.display = 'block';
+  }
+}
+
+function addrScore(hint, addr) {
+  if(!hint || !addr) return 0;
+  var h = hint.toLowerCase(), a = addr.toLowerCase();
+  var hn = (h.match(/\d+/) || [])[0], an = (a.match(/\d+/) || [])[0];
+  if(hn && an && hn === an) return 90;
+  var hw = h.split(/\W+/).filter(function(w) { return w.length > 2; });
+  var aw = new Set(a.split(/\W+/).filter(function(w) { return w.length > 2; }));
+  var overlap = hw.filter(function(w) { return aw.has(w); }).length;
+  return Math.round((overlap / Math.max(hw.length, 1)) * 100);
+}
+
+function fileToHint(fname) {
+  return fname.replace(/\.[^.]+$/, '').replace(/[_\-]/g, ' ')
+    .replace(/deal.?anal\w*/gi, '').replace(/offer/gi, '').replace(/screenshot/gi, '')
+    .replace(/image|photo|pic|img/gi, '').replace(/\s+/g, ' ').trim();
+}
+
+// BUG FIX: cleanPhone returns 10 digits only
+function cleanPhone(p) {
+  var d = (p || '').replace(/\D/g, '');
+  if(d.length === 11 && d.charAt(0) === '1') return d.slice(1);
+  if(d.length === 10) return d;
+  if(d.length > 10) return d.slice(-10);
+  return d;
+}
+
+function parseCSV(text) {
+  var result = Papa.parse(text.trim(), { header: true, skipEmptyLines: true });
+  if(!result.data || !result.data.length) return [];
+
+  function col(row) {
+    var patterns = Array.prototype.slice.call(arguments, 1);
+    for(var i=0; i<patterns.length; i++) {
+      var p = patterns[i].toLowerCase();
+      var keys = Object.keys(row);
+      for(var j=0; j<keys.length; j++) {
+        if(keys[j].toLowerCase().trim().indexOf(p) >= 0) return (row[keys[j]] || '').trim();
+      }
+    }
+    return '';
+  }
+
+  return result.data.map(function(row) {
+    var firstName = col(row, 'first name', 'firstname', 'first');
+    var lastName  = col(row, 'last name', 'lastname', 'last', 'surname');
+    // BUG FIX: expanded name column patterns
+    var fullName  = col(row, 'full name', 'owner name', 'owner', 'homeowner', 'seller', 'contact name', 'contact', 'agent name', 'name');
+    var name = fullName || [firstName, lastName].filter(Boolean).join(' ');
+
+    // BUG FIX: expanded phone column patterns
+    var phone = cleanPhone(
+      col(row, 'phone 1', 'phone1', 'phone number', 'home phone', 'cell phone', 'mobile phone', 'phone #', 'ph', 'telephone', 'phone', 'mobile', 'cell', 'lead_phone', 'contact phone') ||
+      col(row, 'phone 2', 'phone2') || col(row, 'phone 3', 'phone3')
+    );
+
+    var address = col(row, 'property address', 'mailing address', 'street address', 'prop address', 'address');
+    if(!address) {
+      var street = col(row, 'street', 'address 1', 'address1', 'prop street');
+      var city   = col(row, 'city', 'prop city');
+      var state  = col(row, 'state', 'prop state');
+      var zip    = col(row, 'zip', 'zipcode', 'zip code', 'postal', 'prop zip');
+      address = [street, city, state, zip].filter(Boolean).join(', ');
+    } else {
+      var city2  = col(row, 'city', 'prop city');
+      var state2 = col(row, 'state', 'prop state');
+      var zip2   = col(row, 'zip', 'zipcode', 'prop zip');
+      var extra = [city2, state2, zip2].filter(function(x) { return x && address.indexOf(x) < 0; }).join(', ');
+      if(extra) address = address + ', ' + extra;
+    }
+
+    return {
+      name: name.trim(), phone: phone, address: address.trim(),
+      type_raw: col(row, 'property type', 'deal type', 'type') || 'Cash',
+      notes: col(row, 'notes', 'note', 'comment'),
+      offer: col(row, 'list price', 'offer', 'price')
+    };
+  }).filter(function(l) { return l.name || l.address || l.phone; });
+}
+
+function looksLikePhone(s) {
+  // Returns true if string looks like a phone number or explicit "not provided"
+  if(!s) return false;
+  var digits = s.replace(/\D/g, '');
+  return digits.length >= 7 || /not provided|n\/a|none|unknown/i.test(s);
+}
+
+function looksLikeAddress(s) {
+  // Starts with house number followed by street name
+  return /^\d+\s+\w/.test(s.trim());
+}
+
+function looksLikeName(s) {
+  // Has 2+ words, no digits, not an address, not a phone
+  var t = s.trim();
+  if(!t) return false;
+  if(/^\d/.test(t)) return false; // starts with digit = probably address or phone
+  if(looksLikePhone(t)) return false;
+  return t.split(/\s+/).length >= 1 && !/[:=]/.test(t);
+}
+
+function parseKeyVal(text) {
+  var leads = [];
+  var blocks = text.split(/\n\s*\n/);
+  for(var bi=0; bi<blocks.length; bi++) {
+    var rawLines = blocks[bi].trim().split('\n').map(function(l) { return l.trim(); }).filter(Boolean);
+    if(!rawLines.length) continue;
+
+    // ── BARE 3-LINE FORMAT: address / name / phone (no colons) ──────────
+    // e.g. "1317 S Broadway St, Dayton, OH 45417\nKurt Polter\n(314) 662-6578"
+    // Detect: first non-empty line is an address, second is a name, third is a phone
+    if(rawLines.length >= 2 && looksLikeAddress(rawLines[0]) && rawLines.every(function(l) { return l.indexOf(':') < 0; })) {
+      var address = rawLines[0];
+      var name = '';
+      var phone = '';
+      // Try to assign remaining lines to name / phone
+      for(var ri=1; ri<rawLines.length; ri++) {
+        var rl = rawLines[ri];
+        if(!phone && looksLikePhone(rl)) {
+          // Could be phone — but first check if we have a name yet
+          if(name) {
+            phone = rl;
+          } else if(looksLikeName(rl)) {
+            // Could be either; treat as name if it really looks like one
+            name = rl;
+          } else {
+            phone = rl;
+          }
+        } else if(!name && looksLikeName(rl)) {
+          name = rl;
+        } else if(!phone && looksLikePhone(rl)) {
+          phone = rl;
+        }
+      }
+      var cleanedPhone = cleanPhone(phone);
+      // Skip "not provided" phones — store as empty
+      if(/not provided|n\/a|none|unknown/i.test(phone)) cleanedPhone = '';
+      var lead = { name: name, phone: cleanedPhone, address: address, type_raw: 'Cash', notes: '', offer: '' };
+      if(lead.name || lead.address || lead.phone) leads.push(lead);
+      continue;
+    }
+
+    // ── KEY:VALUE FORMAT ─────────────────────────────────────────────────
+    var d = {};
+    var firstLineAddr = '';
+    for(var li=0; li<rawLines.length; li++) {
+      var line = rawLines[li];
+      var numMatch = line.match(/^\d+\.\s+(.+)$/);
+      if(numMatch && li === 0) { firstLineAddr = numMatch[1].trim(); continue; }
+      if(li === 0 && looksLikeAddress(line) && line.indexOf(':') < 0) { firstLineAddr = line; continue; }
+      var colonIdx = line.indexOf(':');
+      if(colonIdx > 0) { d[line.slice(0, colonIdx).trim().toLowerCase()] = line.slice(colonIdx + 1).trim(); }
+    }
+    var lead2 = {
+      name: d['agent name'] || d['owner name'] || d['owner'] || d['homeowner'] || d['seller'] || d['contact name'] || d['contact'] || d['agent'] || d['name'] || '',
+      phone: cleanPhone(d['phone'] || d['phone number'] || d['home phone'] || d['cell phone'] || d['mobile phone'] || d['mobile'] || d['cell'] || d['telephone'] || ''),
+      address: firstLineAddr || d['address'] || d['location'] || d['property address'] || d['property'] || '',
+      type_raw: d['type'] || d['property type'] || d['deal type'] || 'Cash',
+      notes: d['notes'] || d['note'] || d['comment'] || '',
+      offer: d['offer'] || d['list price'] || d['price'] || ''
+    };
+    if(lead2.name || lead2.address || lead2.phone) leads.push(lead2);
+  }
+  return leads;
+}
+
+async function parseAll() {
+  document.getElementById('imp-spin').style.display = 'block';
+  document.getElementById('imp-preview').style.display = 'none';
+  parsedLeads = [];
+  for(var i=0; i<txtFiles.length; i++) {
+    var text = await txtFiles[i].text();
+    var leads = [];
+    var firstLine = text.split('\n')[0] || '';
+    var looksLikeCSV = txtFiles[i].name.endsWith('.csv') || (firstLine.split(',').length >= 3);
+    if(looksLikeCSV) leads = parseCSV(text);
+    if(!leads.length) leads = parseKeyVal(text);
+    parsedLeads.push.apply(parsedLeads, leads);
+  }
+  var imgPreviews = {};
+  for(var j=0; j<imgFiles.length; j++) {
+    imgPreviews[imgFiles[j].name] = { url: URL.createObjectURL(imgFiles[j]), file: imgFiles[j] };
+  }
+  var imgNames = Object.keys(imgPreviews);
+  parsedLeads.forEach(function(lead) {
+    var best = null, bestScore = 0;
+    imgNames.forEach(function(fname) {
+      var hint = fileToHint(fname);
+      var score = Math.max(addrScore(hint, lead.address), addrScore(hint, lead.name));
+      if(score > bestScore) { bestScore = score; best = fname; }
+    });
+    lead.screenshot = bestScore > 25 ? best : null;
+    lead.selected = true;
+  });
+  var unmatched = parsedLeads.filter(function(l) { return !l.screenshot; });
+  var usedImgs = new Set(parsedLeads.filter(function(l) { return l.screenshot; }).map(function(l) { return l.screenshot; }));
+  var freeImgs = imgNames.filter(function(n) { return !usedImgs.has(n); });
+  if(freeImgs.length && unmatched.length) {
+    var lim = Math.min(freeImgs.length, unmatched.length);
+    for(var k=0; k<lim; k++) { unmatched[k].screenshot = freeImgs[k]; }
+  }
+  document.getElementById('imp-spin').style.display = 'none';
+  renderPreview(parsedLeads, imgPreviews);
+}
+
+function typeLabel(raw) {
+  var r = (raw || '').toLowerCase().replace(/\s/g, '');
+  if(r.indexOf('fix') >= 0 || r.indexOf('flip') >= 0) return 'Fix & Flip';
+  if(r.indexOf('offmarket') >= 0 || r.indexOf('off-market') >= 0) return 'Off-Market Trust';
+  if(r.indexOf('trust') >= 0) return 'Trust';
+  if(r.indexOf('mfh') >= 0 || r.indexOf('sf') >= 0) return 'MFH SF';
+  return 'Cash';
+}
+
+function renderPreview(leads, imgPreviews) {
+  if(!leads.length) {
+    document.getElementById('imp-preview').style.display = 'block';
+    document.getElementById('prev-title').textContent = 'No leads found';
+    document.getElementById('prev-tbl').innerHTML = '<div class="al al-warn">Could not parse any leads. Try CSV format: Name, Phone, Address, Type</div>';
+    return;
+  }
+  document.getElementById('prev-title').textContent = leads.length + ' leads ready  --  ' + Object.keys(imgPreviews).length + ' screenshots';
+  var typeOpts = ['Cash','Fix & Flip','Trust','Off-Market Trust','MFH SF'];
+  var rows = leads.map(function(l, i) {
+    var ssImg = (l.screenshot && imgPreviews[l.screenshot]) ? '<img src="' + imgPreviews[l.screenshot].url + '" style="height:32px;width:48px;object-fit:cover;border-radius:4px;vertical-align:middle">' : '';
+    var imgOpts = '<option value="">-- none --</option>' + Object.keys(imgPreviews).map(function(fn) { return '<option value="' + e(fn) + '"' + (l.screenshot === fn ? ' selected' : '') + '>' + fn.slice(0, 18) + '</option>'; }).join('');
+    var typeSelOpts = typeOpts.map(function(t) { return '<option' + (typeLabel(l.type_raw) === t ? ' selected' : '') + '>' + t + '</option>'; }).join('');
+    return '<tr id="row-' + i + '">' +
+      '<td style="width:26px"><input type="checkbox" checked onchange="parsedLeads[' + i + '].selected=this.checked" style="accent-color:#8b5cf6;width:14px;height:14px"></td>' +
+      '<td><input type="text" value="' + e(l.name || '') + '" oninput="parsedLeads[' + i + '].name=this.value" style="min-width:100px"></td>' +
+      '<td><input type="text" value="' + e(l.address || '') + '" oninput="parsedLeads[' + i + '].address=this.value" style="min-width:140px">' + (l._dup ? '<span class="dup-badge">DUP</span>' : '') + '</td>' +
+      '<td><input type="text" value="' + e(l.phone || '') + '" oninput="parsedLeads[' + i + '].phone=this.value" style="min-width:90px"></td>' +
+      '<td><select onchange="parsedLeads[' + i + '].type_raw=this.value">' + typeSelOpts + '</select></td>' +
+      '<td style="font-size:11px">' + ssImg + '<select onchange="parsedLeads[' + i + '].screenshot=this.value||null" style="font-size:11px;max-width:110px;background:#1f2937;color:#e5e7eb;border:1px solid #374151;border-radius:4px;padding:2px 4px">' + imgOpts + '</select></td>' +
+      '</tr>';
+  }).join('');
+  document.getElementById('prev-tbl').innerHTML =
+    '<div style="font-size:11px;color:#6b7280;margin-bottom:7px">Edit fields before importing. Uncheck to skip.</div>' +
+    '<table><thead><tr><th></th><th>Agent Name</th><th>Address</th><th>Phone</th><th>Type</th><th>Screenshot</th></tr></thead><tbody>' + rows + '</tbody></table>';
+  window._imgPreviews = imgPreviews;
+  document.getElementById('imp-preview').style.display = 'block';
+}
+
+var TYPE_IDX = { 'cash': 5, 'fix & flip': 0, 'trust': 105, 'off-market trust': 1, 'mfh sf': 3 };
+
+async function geocodeAddress(address) {
+  try {
+    var r = await fetch(SERVER + '/geocode', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ address: address })
+    });
+    var j = await r.json();
+    if(j.lat && j.lng) return j;
+  } catch(err) { console.warn('Geocode failed:', err.message); }
+  return null;
+}
+
+async function createMondayItem(lead) {
+  var typeKey = (lead.type_raw || 'cash').toLowerCase();
+  var typeIdx = (TYPE_IDX[typeKey] !== undefined) ? TYPE_IDX[typeKey] : 5;
+
+  var cols = {};
+  if(lead.phone) cols.lead_phone = { phone: lead.phone, countryShortName: 'US' };
+  // Notes = actual notes only (address goes to location column, not notes)
+  if(lead.notes) cols.text_mm03pxpa = lead.notes;
+  // Always set Zillow link if we have an address
+  if(lead.address) cols.link_mm2htak3 = { url: fmtZillow(lead.address), text: lead.address };
+  cols.color_mkr63b1e = { index: typeIdx };
+
+  var res = await mq(
+    'mutation($boardId:ID!,$name:String!,$cols:JSON!){create_item(board_id:$boardId,item_name:$name,column_values:$cols){id name}}',
+    { boardId: BOARD_DTA, name: lead.name || 'Unknown Agent', cols: JSON.stringify(cols) }
+  );
+  var item = res && res.data && res.data.create_item;
+
+  // Set location column so address shows up in the Monday Address column
+  if(item && item.id && lead.address) {
+    try {
+      var geo = await geocodeAddress(lead.address);
+      var locObj;
+      if(geo && geo.lat && geo.lng) {
+        locObj = { lat: String(geo.lat), lng: String(geo.lng), address: lead.address, countryShortName: 'US' };
+      } else {
+        // No geocode — use address-only object; Monday will geocode on their end
+        locObj = { address: lead.address, countryShortName: 'US' };
+      }
+      var locRes = await mq(
+        'mutation($boardId:ID!,$itemId:ID!,$val:String!){change_column_value(board_id:$boardId,item_id:$itemId,column_id:"location",value:$val){id}}',
+        { boardId: BOARD_DTA, itemId: item.id, val: JSON.stringify(locObj) }
+      );
+      if(locRes && locRes.errors) {
+        console.warn('Location col errors (trying text fallback):', JSON.stringify(locRes.errors));
+        // Last resort: write as plain JSON string Monday sometimes accepts
+        await mq(
+          'mutation($boardId:ID!,$itemId:ID!,$val:String!){change_column_value(board_id:$boardId,item_id:$itemId,column_id:"location",value:$val){id}}',
+          { boardId: BOARD_DTA, itemId: item.id, val: JSON.stringify(lead.address) }
+        );
+      }
+    } catch(locErr) {
+      console.warn('Location update failed (item still created):', locErr.message);
+    }
+  }
+
+  return item;
+}
+
+async function uploadScreenshot(itemId, file) {
+  var token = getToken();
+  var mutation = 'mutation($file:File!){add_file_to_column(item_id:' + itemId + ',column_id:"file_mm00yfek",file:$file){id}}';
+  var fd = new FormData();
+  fd.append('query', mutation);
+  fd.append('variables[file]', file, file.name);
+  var r = await fetch(SERVER + '/proxy/file', { method: 'POST', headers: { 'Authorization': token }, body: fd });
+  return r.json();
+}
+
+async function pushToMonday() {
+  var btn = document.getElementById('push-btn');
+  var selected = parsedLeads.filter(function(l) { return l.selected !== false; });
+  if(!selected.length) { alert('No leads selected.'); return; }
+  btn.textContent = 'Importing ' + selected.length + ' leads...';
+  btn.disabled = true;
+  var results = [];
+  for(var i=0; i<selected.length; i++) {
+    var lead = selected[i];
+    btn.textContent = 'Importing ' + (i+1) + '/' + selected.length + '...';
+    // Small delay for Monday rate limiting (no geocoding needed anymore)
+    if(i > 0) await new Promise(function(r) { setTimeout(r, 300); });
+    try {
+      var item = await createMondayItem(lead);
+      var ssResult = null;
+      if(item && item.id && lead.screenshot && window._imgPreviews && window._imgPreviews[lead.screenshot]) {
+        try {
+          var sr = await uploadScreenshot(item.id, window._imgPreviews[lead.screenshot].file);
+          ssResult = (sr && sr.data && sr.data.add_file_to_column && sr.data.add_file_to_column.id) ? 'uploaded' : 'failed';
+        } catch(ssErr) { ssResult = 'failed'; console.error('SS upload:', ssErr.message); }
+      }
+      var ssFile = (lead.screenshot && window._imgPreviews && window._imgPreviews[lead.screenshot]) ? window._imgPreviews[lead.screenshot].file : null;
+      results.push({ name: lead.name, address: lead.address, id: item ? item.id : null, ss: ssResult, ssFile: ssFile, ok: !!(item && item.id) });
+    } catch(err) {
+      results.push({ name: lead.name, address: lead.address, ok: false, err: err.message });
+    }
+  }
+  var okCount = results.filter(function(r) { return r.ok; }).length;
+  var ssCount = results.filter(function(r) { return r.ss === 'uploaded'; }).length;
+  var ssFail  = results.filter(function(r) { return r.ss === 'failed'; }).length;
+  var failCount = results.filter(function(r) { return !r.ok; }).length;
+  _failedUploads = results.filter(function(r) { return r.ss === 'failed' && r.id && r.ssFile; }).map(function(r) { return { itemId: r.id, file: r.ssFile, name: r.name }; });
+
+  document.getElementById('imp-results').style.display = 'block';
+  document.getElementById('imp-results').innerHTML =
+    '<div class="al al-ok">' + okCount + ' leads created  --  ' + ssCount + ' screenshots uploaded' + (ssFail ? '  --  ' + ssFail + ' SS failed' : '') + (failCount ? '  --  ' + failCount + ' failed' : '') + '</div>' +
+    (_failedUploads.length ? '<div style="margin-bottom:10px"><div id="retry-ss-result"></div><button class="btn btn-warn btn-sm" onclick="retryFailedScreenshots()">Retry ' + _failedUploads.length + ' Failed Screenshot' + (ssFail > 1 ? 's' : '') + '</button></div>' : '') +
+    '<div class="panel"><div class="pb"><table><thead><tr><th>Name</th><th>Address</th><th>Status</th><th>Screenshot</th></tr></thead><tbody>' +
+    results.map(function(r) {
+      return '<tr><td class="n">' + e(r.name || '--') + '</td><td style="font-size:11px">' + e(r.address || '--') + '</td>' +
+        '<td style="font-size:11px;color:' + (r.ok ? '#10b981' : '#f87171') + '">' + (r.ok ? 'Created ' + r.id : 'Failed: ' + e(r.err || '')) + '</td>' +
+        '<td style="font-size:11px">' + (r.ss === 'uploaded' ? 'OK' : r.ss === 'failed' ? 'Failed' : '--') + '</td></tr>';
+    }).join('') +
+    '</tbody></table></div></div>';
+
+  // BUG FIX: use btn-p not btn-primary
+  var resetBtn = document.createElement('button');
+  resetBtn.className = 'btn btn-p'; resetBtn.style.marginLeft = '10px'; resetBtn.style.fontSize = '12px'; resetBtn.style.padding = '7px 16px';
+  resetBtn.textContent = '+ Import another batch';
+  resetBtn.onclick = function() {
+    txtFiles = []; imgFiles = []; parsedLeads = [];
+    document.getElementById('imp-preview').style.display = 'none';
+    document.getElementById('imp-results').style.display = 'none';
+    document.getElementById('staged-msg').style.display = 'none';
+    document.getElementById('parse-wrap').style.display = 'none';
+    btn.textContent = 'Import All to Monday'; btn.disabled = false; btn.className = 'btn btn-p';
+    resetBtn.remove();
+  };
+  btn.textContent = 'Done'; btn.className = 'btn btn-ok';
+  btn.parentNode.insertBefore(resetBtn, btn.nextSibling);
+  G.leads = null; // invalidate cache
+}
+
+// ─── GRAVEYARD ─────────────────────────────────────────────────────────────
+var GY_KEY = 'gonzo_graveyard';
+var DELETE_REASONS = ['Wrong number','Not interested','Bad data / duplicate','Already listed','Seller changed mind','Disconnected','Other'];
+
+function gyLoad() { try { return JSON.parse(localStorage.getItem(GY_KEY) || '[]'); } catch(e) { return []; } }
+function gySave(arr) { localStorage.setItem(GY_KEY, JSON.stringify(arr)); }
+
+function renderGraveyard() {
+  var items = gyLoad();
+  document.getElementById('gy-ct').textContent = items.length;
+  var el = document.getElementById('gy-grid');
+  if(!items.length) { el.innerHTML = '<div class="al al-info" style="margin-top:8px">No deleted leads yet.</div>'; return; }
+  el.innerHTML = '<div class="gy-grid">' + items.slice().reverse().map(function(g) {
+    return '<div class="gy-card">' +
+      '<div class="gy-card-name">' + e(g.name || 'Unknown') + '</div>' +
+      (g.address ? '<div class="gy-card-addr">📍 ' + e(g.address) + '</div>' : '') +
+      '<div><span class="gy-card-reason">🗑 ' + e(g.reason || 'No reason') + '</span></div>' +
+      '<div class="gy-card-meta">' + (g.status ? e(g.status) + ' · ' : '') + (g.caller ? e(g.caller) + ' · ' : '') + e(new Date(g.deletedAt||0).toLocaleDateString()) + '</div>' +
+    '</div>';
+  }).join('') + '</div>';
+}
+
+function clearGraveyard() {
+  if(!confirm('Clear entire graveyard? This cannot be undone.')) return;
+  localStorage.removeItem(GY_KEY);
+  renderGraveyard();
+}
+
+// ─── DELETE POPUP ──────────────────────────────────────────────────────────
+var _pendingDelete = null; // { itemId, name, lead, onConfirm }
+var _selectedReason = '';
+
+function showDeletePopup(itemId, name, lead, onConfirm) {
+  _pendingDelete = { itemId: itemId, name: name, lead: lead, onConfirm: onConfirm };
+  _selectedReason = '';
+  document.getElementById('del-popup-name').textContent = name;
+  document.getElementById('del-custom-reason').style.display = 'none';
+  document.getElementById('del-custom-reason').value = '';
+  var btns = document.getElementById('del-reasons');
+  btns.innerHTML = DELETE_REASONS.map(function(r) {
+    return '<button class="del-reason-btn" onclick="selectDeleteReason(this,\'' + e(r) + '\')">' + e(r) + '</button>';
+  }).join('');
+  document.getElementById('del-popup').style.display = 'flex';
+}
+
+function selectDeleteReason(btn, reason) {
+  document.querySelectorAll('.del-reason-btn').forEach(function(b) { b.classList.remove('sel'); });
+  btn.classList.add('sel');
+  _selectedReason = reason;
+  var custom = document.getElementById('del-custom-reason');
+  if(reason === 'Other') { custom.style.display = 'block'; custom.focus(); }
+  else { custom.style.display = 'none'; }
+}
+
+function closeDeletePopup() {
+  document.getElementById('del-popup').style.display = 'none';
+  _pendingDelete = null;
+}
+
+async function confirmDeleteWithReason() {
+  if(!_pendingDelete) return;
+  var reason = _selectedReason;
+  if(reason === 'Other') { reason = document.getElementById('del-custom-reason').value.trim() || 'Other'; }
+  if(!reason) { showBanner('Pick a reason first', 'warn'); return; }
+  var p = _pendingDelete;
+  closeDeletePopup();
+  // Add to graveyard
+  var gy = gyLoad();
+  gy.push({
+    id: p.itemId, name: p.name,
+    address: p.lead ? (p.lead.address || '') : '',
+    status: p.lead ? (p.lead.status || '') : '',
+    type: p.lead ? (p.lead.type || '') : '',
+    caller: p.lead ? (p.lead.caller || '') : '',
+    phone: p.lead ? (p.lead.phone || '') : '',
+    reason: reason,
+    deletedAt: Date.now()
+  });
+  gySave(gy);
+  // Call original onConfirm (does the actual Monday delete)
+  if(p.onConfirm) await p.onConfirm();
+}
+
+var _failedUploads = [];
+
+async function repairAddresses() {
+  var btn = document.getElementById('repair-btn');
+  var res = document.getElementById('repair-result');
+  btn.disabled = true;
+  btn.textContent = 'Loading leads…';
+  res.innerHTML = '';
+  try {
+    var d = await mq('query{boards(ids:["' + BOARD_DTA + '"]){items_page(limit:300){items{id name column_values(ids:["location","link_mm2htak3"]){id text value}}}}}');
+    if(!d || !d.data) throw new Error('Monday API returned no data. Check your token.');
+    var items = (d.data.boards && d.data.boards[0] && d.data.boards[0].items_page && d.data.boards[0].items_page.items) || [];
+    // Find leads where location text is empty but Zillow link text looks like an address
+    var toFix = items.filter(function(item) {
+      var c = {};
+      item.column_values.forEach(function(cv) { c[cv.id] = cv.text || ''; });
+      var hasLoc = !!(c.location && c.location.trim());
+      var zt = (c.link_mm2htak3 || '').trim();
+      return !hasLoc && zt && zt !== 'View on Zillow' && /^\d/.test(zt);
+    });
+    if(!toFix.length) {
+      res.innerHTML = '<div class="al al-ok">✅ All leads already have addresses — nothing to repair.</div>';
+      btn.disabled = false; btn.textContent = 'Repair Addresses'; return;
+    }
+    res.innerHTML = '<div style="color:#94a3b8">Found ' + toFix.length + ' leads to fix — geocoding (requires lat/lng for Monday)…</div>';
+    var fixed = 0, skipped = 0, errors = [];
+    for(var i = 0; i < toFix.length; i++) {
+      var item = toFix[i];
+      var c = {}; item.column_values.forEach(function(cv) { c[cv.id] = cv.text || ''; });
+      var addr = c.link_mm2htak3.trim();
+      btn.textContent = 'Repairing ' + (i+1) + '/' + toFix.length + ': ' + item.name.slice(0,20) + '…';
+      try {
+        var geo = await geocodeAddress(addr);
+        if(!geo || !geo.lat || !geo.lng) {
+          // Monday requires lat+lng — cannot write without geocoding
+          skipped++;
+          errors.push(item.name + ': geocode failed for "' + addr + '"');
+          continue;
+        }
+        var locObj = { lat: String(geo.lat), lng: String(geo.lng), address: addr, countryShortName: 'US' };
+        var locRes = await mq(
+          'mutation($b:ID!,$i:ID!,$v:String!){change_column_value(board_id:$b,item_id:$i,column_id:"location",value:$v){id}}',
+          { b: BOARD_DTA, i: item.id, v: JSON.stringify(locObj) }
+        );
+        if(locRes && locRes.errors && locRes.errors.length) {
+          skipped++;
+          errors.push(item.name + ': Monday rejected — ' + locRes.errors[0].message);
+        } else { fixed++; }
+      } catch(er) { skipped++; errors.push(item.name + ': ' + er.message); }
+      if(i < toFix.length - 1) await new Promise(function(r) { setTimeout(r, 400); });
+    }
+    G.leads = null;
+    var msg = '✅ Repaired ' + fixed + ' lead' + (fixed!==1?'s':'');
+    if(skipped) msg += ' — ⚠️ ' + skipped + ' could not be geocoded (address lookup failed)';
+    res.innerHTML = '<div class="al ' + (skipped && !fixed ? 'al-warn' : 'al-ok') + '">' + msg + '</div>' +
+      (errors.length ? '<div style="font-size:11px;color:#6b7280;margin-top:6px">' + errors.slice(0,5).map(e).join('<br>') + (errors.length>5?'<br>…and '+(errors.length-5)+' more':'') + '</div>' : '');
+  } catch(err) {
+    res.innerHTML = '<div class="al al-err">Error: ' + err.message + '</div>';
+  }
+  btn.disabled = false;
+  btn.textContent = 'Repair Addresses';
+}
+
+async function retryFailedScreenshots() {
+  if(!_failedUploads.length) return;
+  var btn = document.querySelector('[onclick="retryFailedScreenshots()"]');
+  if(btn) { btn.textContent = 'Retrying...'; btn.disabled = true; }
+  var succeeded = 0, stillFailing = [];
+  for(var i=0; i<_failedUploads.length; i++) {
+    var fu = _failedUploads[i];
+    try {
+      var sr = await uploadScreenshot(fu.itemId, fu.file);
+      if(sr && sr.data && sr.data.add_file_to_column && sr.data.add_file_to_column.id) succeeded++;
+      else stillFailing.push(fu);
+    } catch(err) { stillFailing.push(fu); }
+    if(i < _failedUploads.length - 1) await new Promise(function(r) { setTimeout(r, 400); });
+  }
+  _failedUploads = stillFailing;
+  var retryEl = document.getElementById('retry-ss-result');
+  if(retryEl) retryEl.innerHTML = stillFailing.length === 0
+    ? '<div class="al al-ok">All ' + succeeded + ' screenshots uploaded!</div>'
+    : '<div class="al al-warn">' + succeeded + ' uploaded, ' + stillFailing.length + ' still failing.</div>';
+  if(btn) { btn.textContent = stillFailing.length ? 'Retry ' + stillFailing.length + ' again' : 'Done'; btn.disabled = !stillFailing.length; }
+}
+
+var _mondayAddrs = null;
+async function checkDuplicates() {
+  var btn = document.getElementById('dup-btn');
+  var out = document.getElementById('dup-result');
+  btn.textContent = 'Checking...'; btn.disabled = true; out.style.display = 'none';
+  try {
+    if(!_mondayAddrs) {
+      var d = await mq('query{boards(ids:["' + BOARD_DTA + '"]){items_page(limit:500){items{id name column_values(ids:["location"]){id text}}}}}');
+      var items = (d && d.data && d.data.boards && d.data.boards[0] && d.data.boards[0].items_page && d.data.boards[0].items_page.items) ? d.data.boards[0].items_page.items : [];
+      _mondayAddrs = items.map(function(i) {
+        var loc = (i.column_values.filter(function(c) { return c.id === 'location'; })[0] || {}).text || '';
+        return { id: i.id, name: i.name, addr: loc.toLowerCase() };
+      });
+    }
+    var dups = [];
+    parsedLeads.forEach(function(lead) {
+      if(!lead.address) return;
+      var addrL = lead.address.toLowerCase();
+      var streetNum = (addrL.match(/^\d+/) || [])[0];
+      var match = null;
+      for(var i=0; i<_mondayAddrs.length; i++) {
+        var m = _mondayAddrs[i];
+        if(streetNum && m.addr && m.addr.indexOf(streetNum) === 0) { match = m; break; }
+        if(m.addr && (m.addr.indexOf(addrL.slice(0,20)) >= 0 || addrL.indexOf(m.addr.slice(0,20)) >= 0)) { match = m; break; }
+      }
+      if(match) { dups.push({ lead: lead, match: match }); lead._dup = true; lead._dupMatch = match.name; }
+      else { lead._dup = false; lead._dupMatch = null; }
+    });
+    out.style.display = 'block';
+    if(dups.length) {
+      out.innerHTML = '<div class="al al-warn">' + dups.length + ' likely duplicate' + (dups.length > 1 ? 's' : '') + ' already on Monday:<br>' + dups.map(function(d) { return '<strong>' + e(d.lead.address) + '</strong> matches "' + e(d.match.name) + '"'; }).join('<br>') + '</div>';
+      renderPreview(parsedLeads, window._imgPreviews || {});
+    } else { out.innerHTML = '<div class="al al-ok">No duplicates found.</div>'; }
+  } catch(err) { out.style.display = 'block'; out.innerHTML = '<div class="al al-warn">Check failed: ' + err.message + '</div>'; }
+  btn.textContent = 'Check Dupes'; btn.disabled = false;
+}
+
+// LOI GENERATOR
+function previewLOI() {
+  var addr = (document.getElementById('loi-addr').value || '').trim() || '[ADDRESS]';
+  var offer = (document.getElementById('loi-offer').value || '').trim() || '[OFFER AMOUNT]';
+  var dt = (document.getElementById('loi-date').value || '').trim() || todayStr();
+  document.getElementById('loi-preview').style.display = 'block';
+  document.getElementById('loi-preview').innerHTML =
+    '<div style="text-align:center;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid #1f2937">' +
+      '<div style="font-size:16px;font-weight:800;color:#a78bfa;letter-spacing:.5px">GONZO HOLDINGS LLC</div>' +
+      '<div style="font-size:11px;color:#4b5563;margin-top:3px">Real Estate Acquisitions</div>' +
+    '</div>' +
+    '<div style="text-align:center;font-size:13px;font-weight:700;color:#fff;margin-bottom:4px;letter-spacing:1px">LETTER OF INTENT</div>' +
+    '<div style="text-align:center;font-size:11px;color:#4b5563;margin-bottom:14px">' + e(dt) + '</div>' +
+    '<p style="font-size:12px;line-height:1.8;margin-bottom:10px">This Letter of Intent outlines the preliminary terms under which <strong>Gonzo Holdings LLC</strong> ("Buyer") proposes to purchase the property located at:</p>' +
+    '<div style="background:#1f2937;border-left:3px solid #8b5cf6;border-radius:0 6px 6px 0;padding:10px 14px;margin-bottom:12px">' +
+      '<div style="font-size:13px;font-weight:700;color:#f1f5f9">' + e(addr) + '</div>' +
+    '</div>' +
+    '<p style="font-size:12px;line-height:1.8;margin-bottom:12px">This letter is non-binding and intended only to express the Buyer\'s interest. A formal purchase agreement will govern all final terms.</p>' +
+    '<div style="background:#1f2937;border-radius:8px;padding:12px 14px;margin-bottom:10px">' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">' +
+        '<div><span style="color:#4b5563">Purchase Price</span><br><strong style="color:#10b981;font-size:14px">' + e(offer) + '</strong></div>' +
+        '<div><span style="color:#4b5563">Purchase Terms</span><br><strong>All Cash, As-Is</strong></div>' +
+        '<div><span style="color:#4b5563">Earnest Money</span><br><strong>$1,000</strong></div>' +
+        '<div><span style="color:#4b5563">Inspection Period</span><br><strong>10 Business Days</strong></div>' +
+        '<div><span style="color:#4b5563">Closing Timeline</span><br><strong>30 Days or Sooner</strong></div>' +
+        '<div><span style="color:#4b5563">Deed Type</span><br><strong>General Warranty Deed</strong></div>' +
+      '</div>' +
+    '</div>' +
+    '<div style="font-size:11px;color:#4b5563;padding-top:10px;border-top:1px solid #1f2937">' +
+      'Buyer: <strong style="color:#d1d5db">Gonzo Holdings LLC</strong> &nbsp;·&nbsp; Authorized by: <strong style="color:#d1d5db">Aengus O\'Hara, VP of Acquisitions</strong>' +
+    '</div>';
+}
+
+async function generateLOI() {
+  var addr = (document.getElementById('loi-addr').value || '').trim();
+  var offer = (document.getElementById('loi-offer').value || '').trim();
+  var dt = (document.getElementById('loi-date').value || '').trim() || todayStr();
+  if(!addr || !offer) { document.getElementById('loi-msg').innerHTML = '<div class="al al-warn">Enter address and offer amount first.</div>'; return; }
+  var btn = document.getElementById('loi-btn');
+  btn.textContent = 'Generating...'; btn.disabled = true;
+  document.getElementById('loi-msg').innerHTML = '';
+  try {
+    var r = await fetch(SERVER + '/loi', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ address: addr, offer: offer, date: dt }) });
+    if(!r.ok) throw new Error(await r.text());
+    var blob = await r.blob();
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a'); a.href = url; a.download = 'LOI_' + addr.replace(/[^a-z0-9]/gi, '_').slice(0, 40) + '.docx'; a.click();
+    URL.revokeObjectURL(url);
+    document.getElementById('loi-msg').innerHTML = '<div class="al al-ok">LOI downloaded!</div>';
+    previewLOI();
+  } catch(err) {
+    document.getElementById('loi-msg').innerHTML = '<div class="al al-warn">Error: ' + err.message + '. Make sure the server is running.</div>';
+  }
+  btn.textContent = 'Generate and Download LOI'; btn.disabled = false;
+}
+
+// DEBUG PANEL
+var _errLog = [];
+(function() {
+  var oE = console.error.bind(console), oW = console.warn.bind(console);
+  console.error = function() { var a = Array.from(arguments); _errLog.push({ t: 'ERR', ts: new Date().toLocaleTimeString(), msg: a.map(String).join(' ') }); if(_errLog.length > 40) _errLog.shift(); oE.apply(console, a); };
+  console.warn  = function() { var a = Array.from(arguments); _errLog.push({ t: 'WARN', ts: new Date().toLocaleTimeString(), msg: a.map(String).join(' ') }); if(_errLog.length > 40) _errLog.shift(); oW.apply(console, a); };
+})();
+
+async function openDebug() {
+  document.getElementById('debug-modal').style.display = 'flex';
+  var body = document.getElementById('debug-body');
+  body.innerHTML = '<div class="spin-wrap"><span class="sp"></span>Running diagnostics...</div>';
+  var apiStatus = '--', apiColor = 'warn';
+  try {
+    var t0 = Date.now(), d = await mq('query{me{id name}}'), ms = Date.now() - t0;
+    if(d && d.data && d.data.me && d.data.me.name) { apiStatus = 'Connected as ' + d.data.me.name + ' (' + ms + 'ms)'; apiColor = 'ok'; }
+    else { apiStatus = 'Bad response: ' + JSON.stringify(d).slice(0, 60); apiColor = 'bad'; }
+  } catch(err) { apiStatus = 'Error: ' + err.message; apiColor = 'bad'; }
+  var srvStatus = '--', srvColor = 'warn';
+  try {
+    var r2 = await fetch(SERVER + '/', { method: 'HEAD' }).catch(function() { return null; });
+    srvStatus = r2 ? 'Server reachable' : 'Not responding -- restart LAUNCH_CRM.command';
+    srvColor = r2 ? 'ok' : 'bad';
+  } catch(err) { srvStatus = err.message; srvColor = 'bad'; }
+  var errHtml = _errLog.length
+    ? _errLog.slice().reverse().map(function(en) { return '[' + en.ts + '] ' + en.t + ': ' + en.msg; }).join('\n')
+    : 'No errors this session.';
+  var wc = getWarCalls();
+  body.innerHTML =
+    '<div class="dbrow"><span class="dblbl">Monday API</span><span class="dbval ' + apiColor + '">' + apiStatus + '</span></div>' +
+    '<div class="dbrow"><span class="dblbl">Local Server</span><span class="dbval ' + srvColor + '">' + srvStatus + '</span></div>' +
+    '<div class="dbrow"><span class="dblbl">Token (first 20)</span><span class="dbval">' + getToken().slice(0, 20) + '...</span></div>' +
+    '<div class="dbrow"><span class="dblbl">Caller</span><span class="dbval">' + getCaller() + ' / ' + getAgentName() + '</span></div>' +
+    '<div class="dbrow"><span class="dblbl">Leads cached</span><span class="dbval">' + (G.leads ? G.leads.length : 'not loaded') + '</span></div>' +
+    '<div class="dbrow"><span class="dblbl">Hot List</span><span class="dbval">' + G.hotList.size + '</span></div>' +
+    '<div class="dbrow"><span class="dblbl">Tinder seen</span><span class="dbval">' + G.seenInTinder.size + '</span></div>' +
+    '<div class="dbrow"><span class="dblbl">War Board</span><span class="dbval">Aengus ' + wc.aengus + '  Michael ' + wc.michael + '</span></div>' +
+    '<div class="dbrow"><span class="dblbl">Staged files</span><span class="dbval">' + txtFiles.length + ' text  ' + imgFiles.length + ' img</span></div>' +
+    '<div class="dbrow"><span class="dblbl">Failed SS queue</span><span class="dbval ' + (_failedUploads.length ? 'bad' : 'ok') + '">' + _failedUploads.length + '</span></div>' +
+    '<div style="margin-top:12px;margin-bottom:6px;font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.6px">Console Log</div>' +
+    '<pre style="background:#0c0e14;border:1px solid #1f2937;border-radius:8px;padding:10px;font-size:10px;color:#9ca3af;white-space:pre-wrap;word-break:break-all;max-height:200px;overflow:auto">' + e(errHtml) + '</pre>' +
+    '<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">' +
+    '<button class="btn btn-g btn-sm" onclick="_mondayAddrs=null;alert(\'Dup cache cleared.\')">Clear Dup Cache</button>' +
+    '<button class="btn btn-g btn-sm" onclick="G.leads=null;alert(\'Lead cache cleared.\')">Clear Lead Cache</button>' +
+    '<button class="btn btn-g btn-sm" onclick="_errLog.length=0;openDebug()">Clear Error Log</button>' +
+    '</div>';
+}
+function closeDebug() { document.getElementById('debug-modal').style.display = 'none'; }
+
+// INIT
+document.getElementById('tok-input').value = getToken();
+document.getElementById('caller-select').value = getCaller();
+document.getElementById('agent-name-input').value = getAgentName();
+document.getElementById('agent-phone-input').value = getAgentPhone();
+document.getElementById('loi-date').value = todayStr();
+
+checkMirrorMode();
+if(!G.mirrorMode) loadDash();
+</script>
+</body>
+</html>
