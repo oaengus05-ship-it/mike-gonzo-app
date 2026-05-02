@@ -179,6 +179,15 @@ td select{background:#1f2937;border:1px solid #374151;border-radius:5px;padding:
 .dash-lcard-side select{background:#1a2030;border:1px solid #374151;border-radius:7px;color:#e5e7eb;font-size:11px;font-weight:700;padding:4px 7px;cursor:pointer;outline:none}
 .dash-lcard-phone{font-size:11px;color:#4b5563;white-space:nowrap}
 .dash-lcard-created{font-size:10px;color:#374151;white-space:nowrap}
+/* V3 one-click status buttons */
+.lcard-stat-btns{display:flex;gap:3px;flex-wrap:wrap}
+.lcard-stat-btn{padding:3px 7px;font-size:10px;font-weight:800;border-radius:5px;border:1px solid #374151;background:#1a2030;color:#4b5563;cursor:pointer;transition:.12s;letter-spacing:.3px}
+.lcard-stat-btn:hover{border-color:#6b7280;color:#9ca3af}
+.lcard-stat-btn.lsb-vm{border-color:#7c3aed;background:#1e1040;color:#a78bfa}
+.lcard-stat-btn.lsb-cb{border-color:#0369a1;background:#0c1f33;color:#7dd3fc}
+.lcard-stat-btn.lsb-fu{border-color:#b45309;background:#1c1200;color:#fbbf24}
+.lcard-stat-btn.lsb-ni{border-color:#b91c1c;background:#200d0d;color:#f87171}
+.lcard-stat-btn.lsb-os{border-color:#059669;background:#022c1d;color:#34d399}
 </style>
 </head>
 <body>
@@ -920,12 +929,12 @@ function renderDashTable() {
     var callerOpts = CALLER_OPTIONS.map(function(c) {
       return '<option value="' + e(c) + '"' + (c === l.caller ? ' selected' : '') + '>' + (c || '-- Caller --') + '</option>';
     }).join('');
-    // Status move buttons: show all non-empty statuses except current
-    var moveBtns = DTA_STATUSES.filter(function(s){ return s && s !== (l.status||''); }).map(function(s) {
-      var cfg = STATUS_TABS.find(function(t){ return t.key === s; }) || {color:'#6b7280'};
-      return '<button onclick="changeLeadStatus(\'' + l.id + '\',\'' + s.replace(/'/g,"\\'") + '\')" ' +
-        'title="Move to ' + e(s) + '" style="padding:2px 7px;font-size:10px;font-weight:700;border-radius:4px;border:1px solid ' + cfg.color + '44;background:transparent;color:' + cfg.color + ';cursor:pointer;white-space:nowrap">' + e(s) + '</button>';
-    }).join('');
+    // One-click status buttons (V3 style) — always show all 5, highlight active
+    function statBtn2(label, shortLabel, cls) {
+      var active = l.status === label ? ' ' + cls : '';
+      return '<button class="lcard-stat-btn' + active + '" onclick="event.stopPropagation();changeLeadStatus(\'' + l.id + '\',\'' + label + '\')" title="' + label + '">' + shortLabel + '</button>';
+    }
+    var moveBtns = statBtn2('Voicemail','VM','lsb-vm') + statBtn2('Calling back','CB','lsb-cb') + statBtn2('Follow Up','FU','lsb-fu') + statBtn2('Offer Sent','OS','lsb-os') + statBtn2('Not interested','NI','lsb-ni');
 
     var callerClass = (l.caller||'').toLowerCase().indexOf('aengus') >= 0 ? 'caller-aengus' :
                       (l.caller||'').toLowerCase().indexOf('michael') >= 0 ? 'caller-michael' :
@@ -943,7 +952,7 @@ function renderDashTable() {
             (l.type ? '<span style="font-size:10px;color:#6b7280;font-weight:600">' + e(l.type) + '</span>' : '') +
           '</div>' +
         '</div>' +
-        '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">' + moveBtns + '</div>' +
+        '<div class="lcard-stat-btns" style="margin-top:6px">' + moveBtns + '</div>' +
       '</div>' +
       '<div class="dash-lcard-side">' +
         '<button onclick="changeLeadCaller(\'' + l.id + '\',\'' + nextCaller + '\',null)" title="Tap to cycle caller" style="padding:3px 9px;font-size:11px;font-weight:800;border-radius:6px;border:1px solid ' + callerBtnColor + ';background:transparent;color:' + callerBtnColor + ';cursor:pointer;white-space:nowrap">' + callerBtnLabel + '</button>' +
