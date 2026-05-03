@@ -512,6 +512,7 @@ const G = {
   chatInterval: null,
   chatItemId: null,
   mirrorMode: false,
+  _sessionChanged: {},
 };
 
 // SETTINGS
@@ -656,6 +657,7 @@ function postSyncUpdate(itemId, body) {
 }
 function changeLeadStatus(itemId, newStatus) {
   setLocalStatus(itemId, newStatus, undefined);
+  G._sessionChanged[itemId] = true;
   if(G.leads) { var _l = G.leads.find(function(x){return x.id===itemId;}); if(_l) _l.status = newStatus; }
   postSyncUpdate(itemId, 'GZ_STATUS:' + newStatus);
 
@@ -682,6 +684,7 @@ function changeLeadStatus(itemId, newStatus) {
 }
 function changeLeadCaller(itemId, newCaller, selectEl) {
   setLocalStatus(itemId, undefined, newCaller);
+  G._sessionChanged[itemId] = true;
   if(G.leads) { var _l = G.leads.find(function(x){return x.id===itemId;}); if(_l) _l.caller = newCaller; }
   postSyncUpdate(itemId, 'GZ_CALLER:' + (newCaller||''));
   renderDashTable();
@@ -699,12 +702,13 @@ async function syncUpdatesFromMonday() {
     for(var i = 0; i < allIds.length; i += BATCH) {
       var batchIds = allIds.slice(i, i + BATCH);
       // Inline IDs as integer literals, limit:20 so call logs can't bury sync updates
-      var d = await mq('query{items(ids:[' + batchIds.join(',') + ']){id updates(limit:20){body created_at}}}');
+      var d = await mq('query{items(ids:[' + batchIds.join(',') + ']){id updates(limit:50){body created_at}}}');
       if(!d || !d.data || !d.data.items) continue;
 
       d.data.items.forEach(function(item) {
         var lead = G.leads.find(function(l){ return l.id === String(item.id); });
         if(!lead) return;
+        if(G._sessionChanged[String(item.id)]) return; // Don't overwrite user's own changes this session
         var local = getLocalStatus(item.id) || {};
         var mondayStatus = null, mondayStatusTs = 0;
         var mondayCaller = null, mondayCallerTs = 0;
