@@ -660,6 +660,10 @@ function changeLeadStatus(itemId, newStatus) {
   G._sessionChanged[itemId] = true;
   if(G.leads) { var _l = G.leads.find(function(x){return x.id===itemId;}); if(_l) _l.status = newStatus; }
   postSyncUpdate(itemId, 'GZ_STATUS:' + newStatus);
+  // Also update Monday's actual status column so Aengus's V3 sees the change immediately
+  mq('mutation($b:ID!,$i:ID!,$c:String!,$v:String!){change_column_value(board_id:$b,item_id:$i,column_id:$c,value:$v){id}}',
+    {b: BOARD_DTA, i: itemId, c: 'lead_status', v: JSON.stringify({label: newStatus})})
+    .catch(function(e) { console.warn('[Gonzo] column sync failed:', e && e.message); });
 
   // Handle exits from dashboard
   if(newStatus === 'Not interested') {
